@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UNIT TESTING IMPLEMENTATION REPORT - Flat Rental System (LuxeFlats)</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 15mm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #111;
+      background-color: #fff;
+      line-height: 1.5;
+      margin: 0 auto;
+      max-width: 850px;
+      padding: 30px 20px;
+    }
+    h1.title {
+      font-size: 26px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      color: #000;
+    }
+    h2.subtitle {
+      font-size: 19px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 4px;
+      color: #222;
+    }
+    .framework-tag {
+      font-size: 15px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 20px;
+    }
+    .meta-block {
+      margin-bottom: 24px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .meta-block p {
+      margin: 3px 0;
+    }
+    .team-block {
+      margin-top: 14px;
+      padding-left: 20px;
+    }
+    .team-block p {
+      margin: 2px 0;
+      font-weight: 500;
+    }
+    h2.section-header {
+      font-size: 20px;
+      font-weight: 700;
+      border-bottom: 2px solid #222;
+      padding-bottom: 4px;
+      margin-top: 30px;
+      margin-bottom: 12px;
+    }
+    h3.service-header {
+      font-size: 17px;
+      font-weight: 700;
+      margin-top: 26px;
+      margin-bottom: 6px;
+      color: #111;
+    }
+    .service-desc {
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .test-meta {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #222;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    table, th, td {
+      border: 1px solid #c0c0c0;
+    }
+    th {
+      background-color: #f8f9fa;
+      color: #111;
+      font-weight: 700;
+      text-align: left;
+      padding: 8px 10px;
+    }
+    td {
+      padding: 8px 10px;
+      vertical-align: top;
+    }
+    td.col-sno { width: 5%; text-align: center; }
+    td.col-tc { width: 22%; font-weight: 600; }
+    td.col-method { width: 20%; font-family: monospace; font-size: 12px; }
+    td.col-desc { width: 43%; color: #333; }
+    td.col-res { width: 10%; text-align: center; font-weight: 700; color: #1e7e34; }
+    .screenshot-box {
+      margin: 14px 0 20px 0;
+      border: 1px dashed #999;
+      border-radius: 4px;
+      padding: 16px;
+      background: #fafafa;
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+    }
+    .result-badge {
+      font-size: 14px;
+      font-weight: 700;
+      color: #155724;
+      margin: 10px 0 24px 0;
+    }
+    .overall-table th {
+      background-color: #e9ecef;
+      text-align: center;
+    }
+    .overall-table td {
+      text-align: center;
+    }
+    .overall-table td:first-child {
+      text-align: left;
+      font-weight: 600;
+    }
+    .overall-table tr.total-row {
+      font-weight: 800;
+      background-color: #f8f9fa;
+    }
+    .conclusion-box {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 10px;
+      color: #222;
+    }
+    @media print {
+      body {
+        padding: 0;
+        max-width: 100%;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      .no-break {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <h1 class="title">UNIT TESTING IMPLEMENTATION REPORT</h1>
+  <h2 class="subtitle">Flat Rental System (LuxeFlats)</h2>
+  <div class="framework-tag">Using JUnit 5 and Mockito</div>
+
+  <!-- METADATA BLOCK -->
+  <div class="meta-block">
+    <p><strong>Project:</strong> Flat Rental & Booking Marketplace (LuxeFlats)</p>
+    <p><strong>Testing Framework:</strong> JUnit 5 (Jupiter)</p>
+    <p><strong>Mocking Framework:</strong> Mockito</p>
+    <p><strong>Programming Language:</strong> Java 21</p>
+    <p><strong>Backend Framework:</strong> Spring Boot</p>
+    <p><strong>Build Tool:</strong> Maven</p>
+    <p><strong>IDE:</strong> VS Code / Eclipse / IntelliJ IDEA</p>
+    <div class="team-block">
+      <p><strong>Team:</strong></p>
+      <p>[Your Name / Team Member Names & IDs]</p>
+    </div>
+  </div>
+
+  <!-- INTRODUCTION -->
+  <h2 class="section-header">Introduction</h2>
+  <p class="service-desc">
+    Unit testing was implemented for the Flat Rental System (LuxeFlats) backend to verify that individual services, domain logic, and validation methods operate correctly and reliably in complete isolation. JUnit 5 was utilized as the standard Java testing framework to structure and execute test suites, while Mockito was employed to mock external dependencies such as repositories, security utilities, and inter-service HTTP clients without requiring active MySQL database or network connectivity.
+  </p>
+  <p class="service-desc">
+    The test suite covers successful core workflows, input validations, exception handling, role-based authorization, state transition guards, and payment processing. A total of <strong>46 test cases</strong> were executed across all microservices, and <strong>all 46 test cases passed successfully (100% success rate)</strong>.
+  </p>
+
+  <h2 class="section-header">Services Tested</h2>
+
+  <!-- 1. AUTHENTICATION SERVICE -->
+  <div class="no-break">
+    <h3 class="service-header">1&gt; Authentication &amp; User Service</h3>
+    <p class="service-desc">
+      The Authentication Service handles user registration, role parsing, BCrypt password hashing, authentication, JWT token generation &amp; claim parsing, and contact detail updates.
+    </p>
+    <div class="test-meta">Test Classes: AuthServiceTest, JwtUtilTest</div>
+    <div class="test-meta">Total test cases: 15</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sno">S. No.</th>
+          <th class="col-tc">Test Case</th>
+          <th class="col-method">Method Tested</th>
+          <th class="col-desc">Explanation</th>
+          <th class="col-res">Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-sno">1</td>
+          <td class="col-tc">Register new user</td>
+          <td class="col-method">register()</td>
+          <td class="col-desc">Verifies that a new user (tenant/owner) is registered with BCrypt encrypted password and correct role.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">2</td>
+          <td class="col-tc">Register duplicate username</td>
+          <td class="col-method">register()</td>
+          <td class="col-desc">Verifies that DuplicateResourceException is thrown when the requested username is already taken.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">3</td>
+          <td class="col-tc">Register duplicate email</td>
+          <td class="col-method">register()</td>
+          <td class="col-desc">Verifies that DuplicateResourceException is thrown when the email address is already registered.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">4</td>
+          <td class="col-tc">Register invalid role</td>
+          <td class="col-method">register()</td>
+          <td class="col-desc">Verifies that IllegalArgumentException is thrown when an unsupported user role is supplied.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">5</td>
+          <td class="col-tc">Login successfully</td>
+          <td class="col-method">login()</td>
+          <td class="col-desc">Verifies that valid credentials return authenticated user details and a signed JWT access token.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">6</td>
+          <td class="col-tc">Login invalid username</td>
+          <td class="col-method">login()</td>
+          <td class="col-desc">Verifies that InvalidCredentialsException is thrown when the username does not exist.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">7</td>
+          <td class="col-tc">Login wrong password</td>
+          <td class="col-method">login()</td>
+          <td class="col-desc">Verifies that InvalidCredentialsException is thrown when an incorrect password is provided.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">8</td>
+          <td class="col-tc">Get user by valid ID</td>
+          <td class="col-method">getUserById()</td>
+          <td class="col-desc">Verifies that user profile information is correctly returned when looking up an existing user ID.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">9</td>
+          <td class="col-tc">Get user by invalid ID</td>
+          <td class="col-method">getUserById()</td>
+          <td class="col-desc">Verifies that ResourceNotFoundException is thrown when the requested user ID does not exist.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">10</td>
+          <td class="col-tc">Update user contact info</td>
+          <td class="col-method">updateUserContact()</td>
+          <td class="col-desc">Verifies that phone number, email, and preferred contact channel are updated and persisted.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">11</td>
+          <td class="col-tc">Get all users</td>
+          <td class="col-method">getAllUsers()</td>
+          <td class="col-desc">Verifies that the service retrieves the list of all registered users in the database.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">12</td>
+          <td class="col-tc">Generate and extract token claims</td>
+          <td class="col-method">generateToken() / extractClaims()</td>
+          <td class="col-desc">Verifies JWT token issuance and proper extraction of username, user ID, and role claims.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">13</td>
+          <td class="col-tc">Validate matching token</td>
+          <td class="col-method">isTokenValid()</td>
+          <td class="col-desc">Verifies that isTokenValid returns true when the token subject matches the authenticated username.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">14</td>
+          <td class="col-tc">Reject non-matching token</td>
+          <td class="col-method">isTokenValid()</td>
+          <td class="col-desc">Verifies that isTokenValid returns false when username does not match token subject.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">15</td>
+          <td class="col-tc">Reject expired token</td>
+          <td class="col-method">isTokenValid() / extractClaim()</td>
+          <td class="col-desc">Verifies that expired tokens are detected and rejected by throwing ExpiredJwtException.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="result-badge">Result: 15/15 Passed (100%)</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 2. PROPERTY SERVICE -->
+  <div class="no-break">
+    <h3 class="service-header">2&gt; Property Service</h3>
+    <p class="service-desc">
+      The Property Service manages rental flat listings, specifications, rent &amp; deposit pricing, geographic search, and owner modification authorization.
+    </p>
+    <div class="test-meta">Test Class: PropertyServiceTest</div>
+    <div class="test-meta">Total test cases: 10</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sno">S. No.</th>
+          <th class="col-tc">Test Case</th>
+          <th class="col-method">Method Tested</th>
+          <th class="col-desc">Explanation</th>
+          <th class="col-res">Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-sno">1</td>
+          <td class="col-tc">Create property listing</td>
+          <td class="col-method">createProperty()</td>
+          <td class="col-desc">Verifies that an owner can successfully list and create a new rental property with full specifications.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">2</td>
+          <td class="col-tc">Get all properties</td>
+          <td class="col-method">getAllProperties()</td>
+          <td class="col-desc">Verifies that all available property listings in the system are retrieved properly.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">3</td>
+          <td class="col-tc">Get property by valid ID</td>
+          <td class="col-method">getPropertyById()</td>
+          <td class="col-desc">Verifies that property details and metadata are returned when querying a valid property ID.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">4</td>
+          <td class="col-tc">Property not found</td>
+          <td class="col-method">getPropertyById()</td>
+          <td class="col-desc">Verifies that ResourceNotFoundException is thrown when querying a non-existing property ID.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">5</td>
+          <td class="col-tc">Filter properties by city</td>
+          <td class="col-method">getPropertiesByCity()</td>
+          <td class="col-desc">Verifies that properties belonging to a specific target city (case-insensitive) are retrieved.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">6</td>
+          <td class="col-tc">Get properties by owner</td>
+          <td class="col-method">getPropertiesByOwner()</td>
+          <td class="col-desc">Verifies that all properties registered by a specific owner ID are returned for owner dashboard view.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">7</td>
+          <td class="col-tc">Update property by owner</td>
+          <td class="col-method">updateProperty()</td>
+          <td class="col-desc">Verifies that an authorized owner can modify property title, rent amount, and details.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">8</td>
+          <td class="col-tc">Update property by non-owner</td>
+          <td class="col-method">updateProperty()</td>
+          <td class="col-desc">Verifies that UnauthorizedActionException is thrown when a non-owner attempts to edit a property.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">9</td>
+          <td class="col-tc">Delete property by owner</td>
+          <td class="col-method">deleteProperty()</td>
+          <td class="col-desc">Verifies that the rightful owner can delete their property listing from the platform.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">10</td>
+          <td class="col-tc">Delete property by non-owner</td>
+          <td class="col-method">deleteProperty()</td>
+          <td class="col-desc">Verifies that UnauthorizedActionException is thrown when an unauthorized user attempts to delete a property.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="result-badge">Result: 10/10 Passed (100%)</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 3. BOOKING SERVICE -->
+  <div class="no-break">
+    <h3 class="service-header">3&gt; Booking Service</h3>
+    <p class="service-desc">
+      The Booking Service orchestrates tenant booking applications, date validations, state machine transitions, tenant verification, cancellation reasons, and owner approval.
+    </p>
+    <div class="test-meta">Test Class: BookingServiceTest</div>
+    <div class="test-meta">Total test cases: 11</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sno">S. No.</th>
+          <th class="col-tc">Test Case</th>
+          <th class="col-method">Method Tested</th>
+          <th class="col-desc">Explanation</th>
+          <th class="col-res">Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-sno">1</td>
+          <td class="col-tc">Create booking draft</td>
+          <td class="col-method">createBooking()</td>
+          <td class="col-desc">Verifies that a tenant can initiate an application with default status APPLICATION_DRAFT.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">2</td>
+          <td class="col-tc">Booking with token reference</td>
+          <td class="col-method">createBooking()</td>
+          <td class="col-desc">Verifies that booking status promotes to PENDING_OWNER_APPROVAL when token payment reference is provided.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">3</td>
+          <td class="col-tc">Invalid booking dates</td>
+          <td class="col-method">createBooking()</td>
+          <td class="col-desc">Verifies that InvalidBookingException is thrown when the end date is on or before the start date.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">4</td>
+          <td class="col-tc">Get booking by valid ID</td>
+          <td class="col-method">getBookingById()</td>
+          <td class="col-desc">Verifies that booking records are retrieved accurately when searching by existing booking ID.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">5</td>
+          <td class="col-tc">Booking not found</td>
+          <td class="col-method">getBookingById()</td>
+          <td class="col-desc">Verifies that ResourceNotFoundException is thrown when querying a non-existing booking ID.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">6</td>
+          <td class="col-tc">Valid status transition</td>
+          <td class="col-method">updateStatus()</td>
+          <td class="col-desc">Verifies that valid state promotion from APPLICATION_DRAFT to PENDING_OWNER_APPROVAL succeeds.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">7</td>
+          <td class="col-tc">Modify terminal status</td>
+          <td class="col-method">updateStatus()</td>
+          <td class="col-desc">Verifies that InvalidBookingException is thrown when attempting to modify an already CANCELLED booking.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">8</td>
+          <td class="col-tc">Cancel booking with reason</td>
+          <td class="col-method">cancelBooking()</td>
+          <td class="col-desc">Verifies that booking transitions to CANCELLED and tenant cancellation reason is saved in database.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">9</td>
+          <td class="col-tc">Salary validation</td>
+          <td class="col-method">submitVerification()</td>
+          <td class="col-desc">Verifies that tenant verification is rejected with InvalidBookingException when salary is zero or negative.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">10</td>
+          <td class="col-tc">Approve with contact share</td>
+          <td class="col-method">approveWithContactShare()</td>
+          <td class="col-desc">Verifies that the owner can approve booking, change status to CONFIRMED, and record contact details.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">11</td>
+          <td class="col-tc">Unauthorized approval attempt</td>
+          <td class="col-method">approveWithContactShare()</td>
+          <td class="col-desc">Verifies that non-owners cannot approve a booking application or share owner contact details.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="result-badge">Result: 11/11 Passed (100%)</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 4. PAYMENT SERVICE -->
+  <div class="no-break">
+    <h3 class="service-header">4&gt; Payment Service</h3>
+    <p class="service-desc">
+      The Payment Service handles token deposits, rent payments, duplicate transaction checks by payment type, transaction reference generation, and refund operations.
+    </p>
+    <div class="test-meta">Test Class: MockPaymentServiceTest</div>
+    <div class="test-meta">Total test cases: 10</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sno">S. No.</th>
+          <th class="col-tc">Test Case</th>
+          <th class="col-method">Method Tested</th>
+          <th class="col-desc">Explanation</th>
+          <th class="col-res">Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-sno">1</td>
+          <td class="col-tc">Create token payment</td>
+          <td class="col-method">createPayment()</td>
+          <td class="col-desc">Verifies that token payment is created with status COMPLETED and unique transaction reference (LF-TXN-).</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">2</td>
+          <td class="col-tc">Duplicate token payment guard</td>
+          <td class="col-method">createPayment()</td>
+          <td class="col-desc">Verifies that PaymentProcessingException is thrown if another TOKEN payment is attempted for the same booking.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">3</td>
+          <td class="col-tc">Rent payment after token success</td>
+          <td class="col-method">createPayment()</td>
+          <td class="col-desc">Verifies that RENT payment is allowed even after TOKEN payment succeeded (regression fix validation).</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">4</td>
+          <td class="col-tc">Get payment by valid ID</td>
+          <td class="col-method">getPaymentById()</td>
+          <td class="col-desc">Verifies that payment record details are returned accurately when querying a valid payment ID.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">5</td>
+          <td class="col-tc">Payment not found</td>
+          <td class="col-method">getPaymentById()</td>
+          <td class="col-desc">Verifies that ResourceNotFoundException is thrown when searching for a non-existing payment ID.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">6</td>
+          <td class="col-tc">Get payments by booking ID</td>
+          <td class="col-method">getPaymentsByBooking()</td>
+          <td class="col-desc">Verifies that all payment records (token + rent) associated with a specific booking are retrieved.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">7</td>
+          <td class="col-tc">Get payments by tenant ID</td>
+          <td class="col-method">getPaymentsByTenant()</td>
+          <td class="col-desc">Verifies that all payment history records for a specific tenant ID are returned.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">8</td>
+          <td class="col-tc">Update payment status</td>
+          <td class="col-method">updateStatus()</td>
+          <td class="col-desc">Verifies that payment status can be updated (e.g. from COMPLETED to REFUNDED) upon refund approval.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">9</td>
+          <td class="col-tc">Initiate refund for completed payment</td>
+          <td class="col-method">initiateRefund()</td>
+          <td class="col-desc">Verifies that refund can be initiated for a completed payment and payment status transitions to REFUNDED.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+        <tr>
+          <td class="col-sno">10</td>
+          <td class="col-tc">Reject refund for pending payment</td>
+          <td class="col-method">initiateRefund()</td>
+          <td class="col-desc">Verifies that PaymentProcessingException is thrown when attempting to refund a non-completed payment.</td>
+          <td class="col-res">Pass</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="result-badge">Result: 10/10 Passed (100%)</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- OVERALL SUMMARY TABLE -->
+  <h2 class="section-header">Overall Test Result</h2>
+  <table class="overall-table">
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Test Cases</th>
+        <th>Passed</th>
+        <th>Failed</th>
+        <th>Success Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Authentication &amp; User Service</td>
+        <td>15</td>
+        <td>15</td>
+        <td>0</td>
+        <td>100%</td>
+      </tr>
+      <tr>
+        <td>Property Service</td>
+        <td>10</td>
+        <td>10</td>
+        <td>0</td>
+        <td>100%</td>
+      </tr>
+      <tr>
+        <td>Booking Service</td>
+        <td>11</td>
+        <td>11</td>
+        <td>0</td>
+        <td>100%</td>
+      </tr>
+      <tr>
+        <td>Payment Service</td>
+        <td>10</td>
+        <td>10</td>
+        <td>0</td>
+        <td>100%</td>
+      </tr>
+      <tr class="total-row">
+        <td>Total</td>
+        <td>46</td>
+        <td>46</td>
+        <td>0</td>
+        <td>100%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- CONCLUSION -->
+  <h2 class="section-header">Conclusion</h2>
+  <div class="conclusion-box">
+    <p>
+      The unit testing implementation was successfully completed for all core backend microservices of the Flat Rental System (LuxeFlats). A total of <strong>46 test cases</strong> were executed, and <strong>all 46 passed</strong> with zero failures and zero errors.
+    </p>
+    <p>
+      The tests validate positive operational paths as well as negative edge cases, including duplicate resource rejection, role-based access security, invalid dates and salary ranges, state machine terminal restrictions, independent token/rent transaction types, and refund flows. Using Mockito dynamic proxies ensured rapid, isolated execution with 100% reproducibility across environments.
+    </p>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,508 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../../api/axiosConfig';
+import { useAuth } from '../../context/AuthContext';
+import { Building2, MapPin, IndianRupee, Bed, Bath, Ruler, ArrowLeft, CheckCircle, AlertCircle, Image } from 'lucide-react';
+import { loadGoogleMapsScript } from '../../utils/googleMaps';
+
+const propertyTypes = [
+  { value: 'STUDIO', label: 'Studio' },
+  { value: 'ONE_BHK', label: '1 BHK' },
+  { value: 'TWO_BHK', label: '2 BHK' },
+  { value: 'THREE_BHK', label: '3 BHK' },
+  { value: 'VILLA', label: 'Villa' },
+  { value: 'PG', label: 'PG' },
+];
+
+const furnishingOptions = ['Furnished', 'Semi-Furnished', 'Unfurnished'];
+
+const amenityOptions = ['WiFi', 'AC', 'Parking', 'Gym', 'Security', 'Power Backup', 'Water Supply', 'Lift', 'Swimming Pool', 'Garden'];
+
+const locationData = {
+  "Delhi": {
+    state: "Delhi",
+    localities: ["Connaught Place", "Dwarka", "Saket", "Karol Bagh", "Hauz Khas", "Vasant Kunj", "Rajouri Garden"]
+  },
+  "Greater Noida": {
+    state: "Uttar Pradesh",
+    localities: ["Knowledge Park", "Pari Chowk", "Sector Pi", "Sector Alpha", "Sector Beta", "Omega 1", "Chi 5"]
+  },
+  "Noida": {
+    state: "Uttar Pradesh",
+    localities: ["Sector 15", "Sector 62", "Sector 18", "Sector 50", "Sector 137", "Sector 76"]
+  },
+  "Mumbai": {
+    state: "Maharashtra",
+    localities: ["Andheri West", "Bandra West", "Juhu", "Colaba", "Worli", "Powai", "Goregaon East", "Thane"]
+  },
+  "Bangalore": {
+    state: "Karnataka",
+    localities: ["Koramangala", "Indiranagar", "HSR Layout", "Whitefield", "Jayanagar", "Electronic City", "Marathahalli"]
+  },
+  "Pune": {
+    state: "Maharashtra",
+    localities: ["Koregaon Park", "Kothrud", "Wakad", "Baner", "Hinjawadi", "Viman Nagar", "Kalyani Nagar"]
+  }
+};
+
+const AddProperty = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const addressInputRef = useRef(null);
+  const [customCityMode, setCustomCityMode] = useState(false);
+
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    address: '',
+    city: '',
+    locality: '',
+    state: '',
+    latitude: '',
+    longitude: '',
+    rentAmount: '',
+    securityDeposit: '',
+    propertyType: 'TWO_BHK',
+    bedrooms: '2',
+    bathrooms: '1',
+    area: '',
+    furnishing: 'Semi-Furnished',
+    imageUrls: '',
+    amenities: []
+  });
+
+  // Initialize Address Places Autocomplete
+  useEffect(() => {
+    let active = true;
+    loadGoogleMapsScript()
+      .then((google) => {
+        if (!active || !addressInputRef.current) return;
+        const options = {
+          types: ['address'],
+          componentRestrictions: { country: 'in' } // Bias/restrict to India
+        };
+        const autocomplete = new google.maps.Autocomplete(addressInputRef.current, options);
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (!place || !place.address_components) return;
+
+          let streetNumber = '';
+          let route = '';
+          let locality = '';
+          let city = '';
+          let state = '';
+          const addressComponents = place.address_components;
+
+          for (const component of addressComponents) {
+            const types = component.types;
+            if (types.includes('street_number')) {
+              streetNumber = component.long_name;
+            } else if (types.includes('route')) {
+              route = component.long_name;
+            } else if (types.includes('sublocality') || types.includes('neighborhood')) {
+              locality = component.long_name;
+            } else if (types.includes('locality')) {
+              city = component.long_name;
+            } else if (types.includes('administrative_area_level_2') && !city) {
+              city = component.long_name;
+            } else if (types.includes('administrative_area_level_1')) {
+              state = component.long_name;
+            }
+          }
+
+          const streetAddr = [streetNumber, route].filter(Boolean).join(' ');
+          const formattedAddress = place.formatted_address || '';
+          
+          if (city) {
+            const isKnown = city in locationData;
+            setCustomCityMode(!isKnown);
+          }
+          
+          setForm(prev => ({
+            ...prev,
+            address: formattedAddress || streetAddr,
+            city: city || prev.city,
+            locality: locality || prev.locality,
+            state: state || prev.state,
+            latitude: place.geometry?.location ? place.geometry.location.lat() : '',
+            longitude: place.geometry?.location ? place.geometry.location.lng() : ''
+          }));
+        });
+      })
+      .catch((err) => {
+        console.log("Places Autocomplete not loaded: Maps API key missing or invalid.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleFileUpload = (e) => {
+    setError('');
+    const files = Array.from(e.target.files);
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const maxSize = 5 * 1024 * 1024; // 5MB limit
+
+    for (let file of files) {
+      if (!validTypes.includes(file.type)) {
+        setError('Please upload a valid JPG, JPEG, PNG or WebP image.');
+        return;
+      }
+      if (file.size > maxSize) {
+        setError('Image file size must be less than 5MB.');
+        return;
+      }
+    }
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImages(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeUploadedImage = (index) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const toggleAmenity = (amenity) => {
+    setForm(prev => ({
+      ...prev,
+      amenities: prev.amenities.includes(amenity)
+        ? prev.amenities.filter(a => a !== amenity)
+        : [...prev.amenities, amenity]
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!form.title || !form.address || !form.city || !form.rentAmount) {
+      setError('Please fill all required fields.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const payload = {
+        title: form.title,
+        description: form.description,
+        address: form.address,
+        city: form.city,
+        locality: form.locality,
+        state: form.state,
+        latitude: form.latitude ? parseFloat(form.latitude) : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
+        rentAmount: parseFloat(form.rentAmount),
+        securityDeposit: form.securityDeposit ? parseFloat(form.securityDeposit) : null,
+        propertyType: form.propertyType,
+        bedrooms: parseInt(form.bedrooms),
+        bathrooms: parseInt(form.bathrooms),
+        area: form.area ? parseInt(form.area) : null,
+        furnishing: form.furnishing,
+        imageUrls: uploadedImages.length > 0 ? uploadedImages.join('|') : (form.imageUrls || ''),
+        amenities: form.amenities.join(','),
+        ownerId: user.userId
+      };
+
+      const res = await api.post('/properties', payload);
+      
+      setSuccess('Property added successfully! Redirecting...');
+      setTimeout(() => navigate('/owner/dashboard'), 1500);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to add property.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '2rem 1.5rem', maxWidth: '800px', margin: '0 auto' }}>
+      <button onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <ArrowLeft size={16} /> Back
+      </button>
+
+      <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>Add New Property</h1>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Fill in the details to list your property on LuxeFlats</p>
+
+      <form onSubmit={handleSubmit}>
+        {/* Basic Info */}
+        <div className="glass-card" style={{ padding: '1.75rem', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Building2 size={20} color="var(--primary)" /> Basic Information
+          </h3>
+
+          <div className="form-group">
+            <label className="form-label">Property Title *</label>
+            <input type="text" name="title" className="form-control" placeholder="e.g. Spacious 2 BHK in Andheri West" value={form.title} onChange={handleChange} required />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea name="description" className="form-control" rows="4" placeholder="Describe your property..." value={form.description} onChange={handleChange} style={{ resize: 'vertical' }}></textarea>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Property Type</label>
+              <select name="propertyType" className="form-select" value={form.propertyType} onChange={handleChange}>
+                {propertyTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Furnishing</label>
+              <select name="furnishing" className="form-select" value={form.furnishing} onChange={handleChange}>
+                {furnishingOptions.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Location */}
+        <div className="glass-card" style={{ padding: '1.75rem', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MapPin size={20} color="var(--primary)" /> Location
+          </h3>
+
+          <div className="form-group">
+            <label className="form-label">Address (Search & select location) *</label>
+            <input 
+              ref={addressInputRef}
+              type="text" 
+              name="address" 
+              className="form-control" 
+              placeholder="Search or enter full address" 
+              value={form.address} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', alignItems: 'start' }}>
+            <div className="form-group">
+              <label className="form-label">City *</label>
+              <select 
+                className="form-select" 
+                value={customCityMode ? 'Other' : (form.city && form.city in locationData ? form.city : '')} 
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'Other') {
+                    setCustomCityMode(true);
+                    setForm(prev => ({ ...prev, city: '', state: '', locality: '' }));
+                  } else {
+                    setCustomCityMode(false);
+                    if (val) {
+                      setForm(prev => ({ 
+                        ...prev, 
+                        city: val, 
+                        state: locationData[val].state, 
+                        locality: locationData[val].localities[0] || '' 
+                      }));
+                    } else {
+                      setForm(prev => ({ ...prev, city: '', state: '', locality: '' }));
+                    }
+                  }
+                }}
+                required
+              >
+                <option value="">Select City</option>
+                {Object.keys(locationData).map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="Other">Other (Type manually)</option>
+              </select>
+
+              {customCityMode && (
+                <input 
+                  type="text" 
+                  name="city" 
+                  className="form-control" 
+                  placeholder="Enter custom city" 
+                  value={form.city} 
+                  onChange={handleChange} 
+                  style={{ marginTop: '0.5rem' }}
+                  required 
+                />
+              )}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Locality</label>
+              <input 
+                type="text" 
+                name="locality" 
+                className="form-control" 
+                placeholder="e.g. Andheri West" 
+                value={form.locality} 
+                onChange={handleChange} 
+                list="locality-suggestions"
+              />
+              <datalist id="locality-suggestions">
+                {form.city && locationData[form.city] && locationData[form.city].localities.map(loc => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">State</label>
+              <input 
+                type="text" 
+                name="state" 
+                className="form-control" 
+                placeholder="e.g. Maharashtra" 
+                value={form.state} 
+                onChange={handleChange} 
+              />
+            </div>
+          </div>
+
+          {form.latitude && form.longitude && (
+            <small style={{ color: '#10b981', fontSize: '0.8rem', marginTop: '0.5rem', display: 'block' }}>
+              ✓ Location coordinates pinned: {parseFloat(form.latitude).toFixed(5)}, {parseFloat(form.longitude).toFixed(5)}
+            </small>
+          )}
+        </div>
+
+        {/* Pricing & Specs */}
+        <div className="glass-card" style={{ padding: '1.75rem', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <IndianRupee size={20} color="var(--primary)" /> Pricing & Specifications
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Monthly Rent (₹) *</label>
+              <input type="number" name="rentAmount" className="form-control" placeholder="e.g. 25000" value={form.rentAmount} onChange={handleChange} required min="0" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Security Deposit (₹)</label>
+              <input type="number" name="securityDeposit" className="form-control" placeholder="e.g. 50000" value={form.securityDeposit} onChange={handleChange} min="0" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Bedrooms</label>
+              <select name="bedrooms" className="form-select" value={form.bedrooms} onChange={handleChange}>
+                {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Bathrooms</label>
+              <select name="bathrooms" className="form-select" value={form.bathrooms} onChange={handleChange}>
+                {[1,2,3,4].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Area (sqft)</label>
+              <input type="number" name="area" className="form-control" placeholder="e.g. 950" value={form.area} onChange={handleChange} min="0" />
+            </div>
+          </div>
+        </div>
+
+        {/* Images */}
+        <div className="glass-card" style={{ padding: '1.75rem', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Image size={20} color="var(--primary)" /> Images
+          </h3>
+          <div className="form-group">
+            <label className="form-label">Upload Photos from Device</label>
+            <input 
+              type="file" 
+              multiple 
+              accept="image/*" 
+              onChange={handleFileUpload} 
+              style={{ display: 'none' }} 
+              id="file-upload-input" 
+            />
+            <label 
+              htmlFor="file-upload-input" 
+              className="btn btn-secondary" 
+              style={{ display: 'inline-flex', alignSelf: 'flex-start', cursor: 'pointer', gap: '0.5rem' }}
+            >
+              Select Images
+            </label>
+            <small style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+              Select one or more photos of your property from your computer
+            </small>
+          </div>
+
+          {/* Thumbnails of uploaded images */}
+          {uploadedImages.length > 0 && (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+              {uploadedImages.map((base64, index) => (
+                <div key={index} style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                  <img src={base64} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button 
+                    type="button" 
+                    onClick={() => removeUploadedImage(index)}
+                    style={{ position: 'absolute', top: '2px', right: '2px', backgroundColor: 'rgba(0,0,0,0.6)', border: 'none', color: '#ff4d4f', width: '20px', height: '20px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}
+                  >
+                    X
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Amenities */}
+        <div className="glass-card" style={{ padding: '1.75rem', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontWeight: '700', marginBottom: '1.25rem' }}>Amenities</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+            {amenityOptions.map(a => (
+              <button key={a} type="button" onClick={() => toggleAmenity(a)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  border: form.amenities.includes(a) ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                  backgroundColor: form.amenities.includes(a) ? 'rgba(99,102,241,0.15)' : 'transparent',
+                  color: form.amenities.includes(a) ? 'var(--primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontWeight: form.amenities.includes(a) ? '700' : '500',
+                  fontSize: '0.85rem',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}>
+                {form.amenities.includes(a) && <CheckCircle size={14} />}
+                {a}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>
+            <AlertCircle size={16} /> {error}
+          </div>
+        )}
+        {success && (
+          <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
+            <CheckCircle size={16} /> {success}
+          </div>
+        )}
+
+        <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={submitting} style={{ marginBottom: '2rem' }}>
+          {submitting ? 'Publishing Property...' : 'Publish Property'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default AddProperty;

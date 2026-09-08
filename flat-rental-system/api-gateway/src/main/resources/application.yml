@@ -1,0 +1,59 @@
+server:
+  port: 8080
+  # Allow large request bodies (for Base64 image uploads)
+  netty:
+    max-chunk-size: 52428800
+
+spring:
+  application:
+    name: api-gateway
+
+  codec:
+    max-in-memory-size: 50MB
+
+  cloud:
+    gateway:
+      httpclient:
+        max-header-size: 65536
+      routes:
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/**
+
+        - id: property-service
+          uri: ${PROPERTY_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/properties/**
+
+        - id: booking-service
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/bookings/**
+
+        - id: payment-service
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/payments/**
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+              - "http://localhost:5174"
+              - "http://localhost:5175"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

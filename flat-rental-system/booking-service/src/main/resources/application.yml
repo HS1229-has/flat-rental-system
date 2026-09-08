@@ -1,0 +1,39 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: booking-service
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:flat_rental_booking}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:Harsh@284403}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  sql:
+    init:
+      mode: always
+
+jwt:
+  secret: ${JWT_SECRET:flat-rental-system-super-secret-key-change-me-in-production-0123456789}
+
+# Base URLs for calling sibling services directly (no service discovery yet).
+services:
+  property-service:
+    base-url: ${PROPERTY_SERVICE_URL:http://localhost:8082}
+  payment-service:
+    base-url: ${PAYMENT_SERVICE_URL:http://localhost:8084}
+
+logging:
+  level:
+    com.flatrental.booking: DEBUG

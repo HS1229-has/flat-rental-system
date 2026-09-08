@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.flatrental</groupId>
+    <artifactId>flat-rental-system</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Flat Rental System</name>
+    <description>Parent aggregator project for the Flat Rental System microservices</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <!--
+        This is an AGGREGATOR pom only (packaging=pom). It does not act as the
+        Maven "parent" for the child services - each microservice inherits
+        directly from spring-boot-starter-parent so every module can be built,
+        run, and understood independently. Running "mvn clean install" here
+        will build every module listed below in the correct order.
+    -->
+    <modules>
+        <module>auth-service</module>
+        <module>property-service</module>
+        <module>booking-service</module>
+        <module>payment-service</module>
+        <module>api-gateway</module>
+    </modules>
+
+</project>

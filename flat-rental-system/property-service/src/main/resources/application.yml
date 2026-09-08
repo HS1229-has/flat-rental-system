@@ -1,0 +1,39 @@
+server:
+  port: 8082
+  tomcat:
+    max-http-form-post-size: 52428800   # 50MB
+    max-swallow-size: 52428800
+
+spring:
+  application:
+    name: property-service
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:flat_rental_property}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:Harsh@284403}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
+jwt:
+  secret: ${JWT_SECRET:flat-rental-system-super-secret-key-change-me-in-production-0123456789}
+
+logging:
+  level:
+    com.flatrental.property: DEBUG

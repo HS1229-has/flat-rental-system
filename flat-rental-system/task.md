@@ -1,0 +1,21 @@
+# Task List - Production-Style Location System
+
+- [x] Backend: Seed Greater Noida Test Data in `property-service` data models and mappings
+  - [x] Add new fields `state`, `latitude`, `longitude` to `Property.java`
+  - [x] Add fields to `PropertyRequest.java`
+  - [x] Add fields to `PropertyResponse.java`
+  - [x] Update `PropertyService.java` with new field assignments
+- [x] Compile and verify backend property-service
+- [x] Implement frontend location utilities and configuration
+  - [x] Create `frontend/.env` with `VITE_GOOGLE_MAPS_API_KEY` placeholder
+  - [x] Create dynamic script loader `frontend/src/utils/googleMaps.js`
+- [x] Integrate geocoding and location filters in search portal
+  - [x] Update `Properties.jsx` with automatic browser Geolocation & Geocoding on mount
+  - [x] Add "Use my current location" button and logic
+  - [x] Set up Google Places Autocomplete on City/Locality search input with India biasing
+- [x] Integrate places autocomplete in property listing forms
+  - [x] Update `AddProperty.jsx` with address search autocomplete and fields auto-population
+  - [x] Update `EditProperty.jsx` with address search autocomplete and fields auto-population
+- [x] Render interactive map on details page
+  - [x] Update `PropertyDetails.jsx` with interactive Google Map for listings with coordinates
+- [x] Verify frontend build and run end-to-end integration checks

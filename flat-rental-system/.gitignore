@@ -1,0 +1,35 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Compiled class files
+*.class
+
+# Logs
+*.log
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+*.env.local
+
+# Node (future frontend)
+node_modules/
+dist/
+build/
+
+# Docker
+*.pid
