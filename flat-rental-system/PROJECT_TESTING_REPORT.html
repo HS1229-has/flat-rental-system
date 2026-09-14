@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Unit Testing & Validation Report - Flat Rental System</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 14mm 14mm 14mm;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #222;
+      margin: 0 auto;
+      padding: 0;
+      background: #fff;
+    }
+    .header-box {
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+      margin-bottom: 16px;
+    }
+    h1.doc-title {
+      font-size: 21px;
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      color: #111;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .meta-table {
+      width: 100%;
+      margin-top: 8px;
+      border: none !important;
+      font-size: 13px;
+    }
+    .meta-table td {
+      border: none !important;
+      padding: 2px 0;
+      background: transparent !important;
+    }
+    .meta-label {
+      font-weight: 700;
+      width: 170px;
+      color: #444;
+    }
+    .meta-val {
+      color: #111;
+    }
+    h2.sec-heading {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1.5px solid #555;
+      page-break-after: avoid;
+    }
+    h3.sub-heading {
+      font-size: 14px;
+      font-weight: 700;
+      color: #222;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+    p {
+      margin: 4px 0 8px 0;
+    }
+    ul {
+      margin: 4px 0 10px 0;
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 3px;
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+      margin-bottom: 14px;
+      page-break-inside: auto;
+    }
+    thead {
+      display: table-header-group;
+    }
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    table.data-table th {
+      background-color: #f1f5f9;
+      color: #111;
+      font-weight: 700;
+      text-align: left;
+      border: 1px solid #94a3b8;
+      padding: 6px 8px;
+    }
+    table.data-table td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 8px;
+      vertical-align: top;
+    }
+    table.data-table tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+    .pass-badge {
+      display: inline-block;
+      background: #dcfce7;
+      color: #166534;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .test-card {
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #4f46e5;
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      background: #fafafa;
+      page-break-inside: avoid;
+    }
+    .test-card-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: #1e1b4b;
+      margin-bottom: 4px;
+      font-family: Consolas, monospace;
+    }
+    .test-card-desc {
+      font-size: 12px;
+      color: #334155;
+      margin: 2px 0;
+    }
+    .code-snippet {
+      background-color: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-family: Consolas, monospace;
+      font-size: 11.5px;
+      color: #0f172a;
+      margin: 8px 0;
+      white-space: pre-wrap;
+    }
+    .service-divider {
+      margin-top: 22px;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 10px;
+    }
+    .summary-box {
+      background-color: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      padding: 12px 14px;
+      margin: 12px 0;
+      page-break-inside: avoid;
+    }
+    .summary-box p {
+      margin: 3px 0;
+    }
+    .total-row td {
+      font-weight: 700;
+      background-color: #e2e8f0 !important;
+    }
+    .qna-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      background-color: #fff;
+      page-break-inside: avoid;
+    }
+    .qna-title {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-box">
+    <h1 class="doc-title">Unit Testing &amp; Validation Report: Flat Rental System</h1>
+    <div style="font-size: 13.5px; font-weight: 600; color: #475569;">Verified Unit Tests, Input Validation Fixes &amp; Bean Validation Results</div>
+    
+    <table class="meta-table">
+      <tr>
+        <td class="meta-label">Project:</td>
+        <td class="meta-val">Flat Rental &amp; Booking Marketplace (LuxeFlats)</td>
+      </tr>
+      <tr>
+        <td class="meta-label">Covered Microservices:</td>
+        <td class="meta-val">Auth Service (Port 8081) &amp; Property Service (Port 8082)</td>
+      </tr>
+      <tr>
+        <td class="meta-label">Testing Layers:</td>
+        <td class="meta-val">Service Unit Tests (Mockito), DTO Bean Validation (Jakarta Validator), Controller HTTP API (MockMvc)</td>
+      </tr>
+      <tr>
+        <td class="meta-label">Runtime / Build:</td>
+        <td class="meta-val">Java 21 / OpenJDK 26, Spring Boot 3.2.3, Apache Maven 3.9.8</td>
+      </tr>
+      <tr>
+        <td class="meta-label">Overall Test Results:</td>
+        <td class="meta-val"><strong>63 / 63 Tests Passing (100% Pass Rate, 0 Failures, 0 Errors)</strong></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- SECTION 1: OVERVIEW & NEW VALIDATION ENHANCEMENTS -->
+  <h2 class="sec-heading">1. Registration Input Validation Fixes (Auth Service)</h2>
+  <p>
+    During recent testing, registration input vulnerabilities were identified in the Auth Service DTO (<code>RegisterRequest.java</code>). To enforce defensive data validation before persistence, input validation rules were implemented and tested:
+  </p>
+
+  <h3 class="sub-heading">A. Indian Mobile Number Validation (phoneNumber)</h3>
+  <ul>
+    <li><strong>Previous State:</strong> <code>phoneNumber</code> was an unvalidated String. Alphabetic strings, wrong lengths, or invalid digits could be submitted.</li>
+    <li><strong>Implemented Validation:</strong>
+      <ul>
+        <li><code>@NotBlank(message = "Phone number is required")</code></li>
+        <li><code>@Pattern(regexp = "^[6-9]\d{9}$", message = "Phone number must be a valid 10-digit Indian mobile number")</code></li>
+      </ul>
+    </li>
+    <li><strong>Rules Enforced:</strong>
+      <ul>
+        <li>Must be <strong>exactly 10 numeric digits</strong>.</li>
+        <li>Must begin with a valid Indian mobile starting digit (<strong>6, 7, 8, or 9</strong>).</li>
+        <li>Rejects alphabetic/alphanumeric strings (e.g. <code>"abcdefghij"</code>, <code>"98765abcde"</code>).</li>
+        <li>Rejects incorrect length (e.g. 9 digits <code>"987654321"</code>, 11 digits <code>"98765432100"</code>).</li>
+        <li>Rejects invalid starting digits (e.g. <code>"0987654321"</code>, <code>"1234567890"</code>, <code>"5876543210"</code>).</li>
+        <li>Rejects <code>null</code> and empty/whitespace-only values.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3 class="sub-heading">B. Email Syntax Validation (email)</h3>
+  <ul>
+    <li><strong>Verified Behavior:</strong> Standard Bean Validation behavior was tested against malformed inputs:
+      <ul>
+        <li><code>@abc.com</code> (missing local user part) &rarr; <strong>Rejected</strong></li>
+        <li><code>abc@</code> (missing domain part) &rarr; <strong>Rejected</strong></li>
+        <li><code>abc</code> (missing @ symbol and domain) &rarr; <strong>Rejected</strong></li>
+      </ul>
+    </li>
+    <li><strong>Implemented Annotation:</strong> 
+      <code>@NotBlank(message = "Email is required")</code><br>
+      <code>@Email(regexp = "^[^@\s]+@[^@\s]+\.[^@\s]+$", message = "Email must be valid")</code>
+    </li>
+    <li><strong>Design Decision:</strong> Enforces standard <code>local@domain.extension</code> syntax while avoiding overly restrictive domain rules to keep legitimate email providers supported.</li>
+  </ul>
+
+  <div class="code-snippet">
+// Code updated in com.flatrental.auth.dto.RegisterRequest:
+@NotBlank(message = "Email is required")
+@Email(regexp = "^[^@\s]+@[^@\s]+\.[^@\s]+$", message = "Email must be valid")
+private String email;
+
+@NotBlank(message = "Phone number is required")
+@Pattern(regexp = "^[6-9]\d{9}$", message = "Phone number must be a valid 10-digit Indian mobile number")
+private String phoneNumber;
+  </div>
+
+
+  <!-- SECTION 2: DTO & CONTROLLER BEAN VALIDATION TEST SUITES -->
+  <div class="service-divider"></div>
+  <h2 class="sec-heading">2. Executing Bean Validation (@Valid Tests)</h2>
+  <p>
+    <strong>Key Architectural Detail:</strong> Service unit tests (such as <code>AuthServiceTest</code>) instantiate the service directly in plain Java with mocks, which completely bypasses Spring's <code>@Valid</code> and Jakarta Bean Validation. To properly verify that invalid inputs are blocked at runtime, two dedicated validation test suites were added:
+  </p>
+
+  <h3 class="sub-heading">A. DTO-Level Bean Validation Suite (RegisterRequestValidationTest.java)</h3>
+  <p>
+    Uses <code>jakarta.validation.Validator</code> (the exact validation engine used by Spring Boot) to test constraint violations directly on the DTO:
+  </p>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width:36px; text-align:center;">#</th>
+        <th style="width:220px;">Validation Scenario Tested</th>
+        <th>Input Values Tested</th>
+        <th style="width:85px; text-align:center;">Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:center;">1</td>
+        <td><strong>Valid 10-digit Indian mobile numbers</strong></td>
+        <td><code>"9876543210"</code>, <code>"8123456789"</code>, <code>"7000000000"</code>, <code>"6123456789"</code></td>
+        <td style="text-align:center;"><span class="pass-badge">PASS (0 errors)</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center;">2</td>
+        <td><strong>Non-numeric / alphabetic phone strings</strong></td>
+        <td><code>"abcdefghij"</code>, <code>"98765abcde"</code>, <code>"phone12345"</code>, <code>"98765@4321"</code></td>
+        <td style="text-align:center;"><span class="pass-badge">PASS (Rejected)</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center;">3</td>
+        <td><strong>Wrong phone length</strong></td>
+        <td><code>"987654321"</code> (9 digits), <code>"98765432100"</code> (11 digits), <code>"9"</code> (1 digit)</td>
+        <td style="text-align:center;"><span class="pass-badge">PASS (Rejected)</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center;">4</td>
+        <td><strong>Invalid Indian starting digit</strong></td>
+        <td><code>"5876543210"</code>, <code>"1234567890"</code>, <code>"0987654321"</code>, <code>"2345678901"</code></td>
+        <td style="text-align:center;"><span class="pass-badge">PASS (Rejected)</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center;">5</td>
+        <td><strong>Null or whitespace-only phone</strong></td>
+        <td><code>null</code>, <code>"   "</code></td>
+        <td style="text-align:center;"><span class="pass-badge">PASS (Rejected)</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center;">6</td>
+        <td><strong>Malformed email syntax</strong></td>
+        <td><code>"@abc.com"</code>, <code>"abc@"</code>, <code>"abc"</code>, <code>"abc@def"</code></td>
+        <td style="text-align:center;"><span class="pass-badge">PASS (Rejected)</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center;">7</td>
+        <td><strong>Valid email syntax</strong></td>
+        <td><code>"user@example.com"</code>, <code>"john.doe@domain.co.in"</code>, <code>"tenant+test@mail.org"</code></td>
+        <td style="text-align:center;"><span class="pass-badge">PASS (Accepted)</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center;">8</td>
+        <td><strong>Complete valid registration payload</strong></td>
+        <td>All valid fields: username, email, password, full name, 10-digit phone, role</td>
+        <td style="text-align:center;"><span class="pass-badge">PASS (0 errors)</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Result:</strong> 23 parameterized test invocations executed; <strong>all 23 passed (100%)</strong>.</p>
+
+  <h3 class="sub-heading">B. HTTP Controller Layer @Valid Suite (AuthControllerValidationTest.java)</h3>
+  <p>
+    Uses Spring <code>MockMvc</code> on <code>POST /api/auth/register</code> to verify that Spring MVC catches constraint violations, blocks execution, and returns <code>HTTP 400 Bad Request</code> via <code>GlobalExceptionHandler</code>:
+  </p>
+  <ul>
+    <li><code>testRegister_InvalidEmail_Returns400</code>: Sends <code>"@abc.com"</code> &rarr; HTTP 400 with <code>"Validation failed"</code>, 0 database writes.</li>
+    <li><code>testRegister_InvalidPhoneLength_Returns400</code>: Sends 9-digit phone &rarr; HTTP 400 with <code>"Validation failed"</code>, 0 database writes.</li>
+    <li><code>testRegister_AlphabeticPhone_Returns400</code>: Sends <code>"98765abcde"</code> &rarr; HTTP 400 with <code>"Validation failed"</code>, 0 database writes.</li>
+    <li><code>testRegister_InvalidStartingDigitPhone_Returns400</code>: Sends phone starting with <code>5</code> &rarr; HTTP 400, 0 database writes.</li>
+    <li><code>testRegister_ValidRequest_Returns201</code>: Sends valid email and 10-digit phone &rarr; HTTP 201 Created with saved user entity.</li>
+  </ul>
+  <p><strong>Result:</strong> 5 MockMvc controller tests executed; <strong>all 5 passed (100%)</strong>.</p>
+
+
+  <!-- SECTION 3: SERVICE-LEVEL TESTS (EXISTING VS ADDED) -->
+  <div class="service-divider"></div>
+  <h2 class="sec-heading">3. Service-Level Unit Testing Breakdown (Auth &amp; Property)</h2>
+  <p>
+    The core service unit test suites (<code>AuthServiceTest.java</code> and <code>PropertyServiceTest.java</code>) test business logic, database mock interactions, and authorization checks:
+  </p>
+
+  <h3 class="sub-heading">A. AuthServiceTest (15 Tests: 11 Existing + 4 Added)</h3>
+  <ul>
+    <li><strong>11 Existing Tests:</strong> Valid register (<code>testRegister_Success</code>), duplicate username (<code>testRegister_DuplicateUsername</code>), duplicate email (<code>testRegister_DuplicateEmail</code>), invalid role (<code>testRegister_InvalidRole</code>), valid login (<code>testLogin_Success</code>), invalid username (<code>testLogin_InvalidUsername</code>), wrong password (<code>testLogin_WrongPassword</code>), get user by ID (<code>testGetUserById_Success</code>), user not found (<code>testGetUserById_NotFound</code>), update contact (<code>testUpdateUserContact_Success</code>), get all users (<code>testGetAllUsers</code>).</li>
+    <li><strong>4 Added Tests (from recent testing work):</strong>
+      <ol>
+        <li><code>testRegister_LowercaseRole</code>: Verifies role string <code>"tenant"</code> normalizes to <code>ROLE_TENANT</code>.</li>
+        <li><code>testRegister_RoleWithPrefix</code>: Verifies <code>"ROLE_TENANT"</code> is handled without double-prefixing.</li>
+        <li><code>testRegister_NullRole</code>: Null-safety check asserting <code>NullPointerException</code> and 0 database writes.</li>
+        <li><code>testLogin_JwtContainsCorrectClaims</code>: Asserts that JWT token embeds correct <code>username</code> and <code>role</code> claims.</li>
+      </ol>
+    </li>
+  </ul>
+
+  <h3 class="sub-heading">B. PropertyServiceTest (16 Tests: 10 Existing + 6 Added)</h3>
+  <ul>
+    <li><strong>10 Existing Tests:</strong> Create listing (<code>testCreateProperty_Success</code>), get all properties (<code>testGetAllProperties</code>), get by ID (<code>testGetPropertyById_Success</code>), property not found (<code>testGetPropertyById_NotFound</code>), city filter (<code>testGetPropertiesByCity</code>), owner filter (<code>testGetPropertiesByOwner</code>), owner update (<code>testUpdateProperty_Success</code>), non-owner update guard (<code>testUpdateProperty_Unauthorized</code>), owner delete (<code>testDeleteProperty_Success</code>), non-owner delete guard (<code>testDeleteProperty_Unauthorized</code>).</li>
+    <li><strong>6 Added Tests (from recent testing work):</strong>
+      <ol>
+        <li><code>testGetPropertyImageUrls_Success</code>: Verifies retrieval of pipe-separated image URLs (verified added recently via git history).</li>
+        <li><code>testGetPropertyImageUrls_NotFound</code>: Throws ResourceNotFoundException for missing property photos.</li>
+        <li><code>testUpdateProperty_NotFound</code>: Throws ResourceNotFoundException when updating non-existent property ID.</li>
+        <li><code>testDeleteProperty_NotFound</code>: Throws ResourceNotFoundException when deleting non-existent property ID.</li>
+        <li><code>testCreateProperty_AssignsOwner</code>: Asserts multi-tenant ownerId assignment on listing creation.</li>
+        <li><code>testUpdateProperty_ResolvesExistingImage</code>: Verifies resolution of relative image URLs back to stored base64 data.</li>
+      </ol>
+    </li>
+  </ul>
+
+
+  <!-- SECTION 4: OVERALL EXECUTION SUMMARY -->
+  <div class="service-divider"></div>
+  <h2 class="sec-heading">4. Overall Test Execution Summary</h2>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Test Suite</th>
+        <th>Test Class</th>
+        <th>Layer Tested</th>
+        <th style="text-align:center;">Tests Run</th>
+        <th style="text-align:center;">Passed</th>
+        <th style="text-align:center;">Failures</th>
+        <th style="text-align:center;">Success Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Registration Bean Validation</strong></td>
+        <td><code>RegisterRequestValidationTest</code></td>
+        <td>Jakarta Bean Validation Engine</td>
+        <td style="text-align:center;">23</td>
+        <td style="text-align:center; color:#166534; font-weight:700;">23</td>
+        <td style="text-align:center;">0</td>
+        <td style="text-align:center;"><span class="pass-badge">100%</span></td>
+      </tr>
+      <tr>
+        <td><strong>Controller HTTP Validation</strong></td>
+        <td><code>AuthControllerValidationTest</code></td>
+        <td>Spring MVC MockMvc (@Valid)</td>
+        <td style="text-align:center;">5</td>
+        <td style="text-align:center; color:#166534; font-weight:700;">5</td>
+        <td style="text-align:center;">0</td>
+        <td style="text-align:center;"><span class="pass-badge">100%</span></td>
+      </tr>
+      <tr>
+        <td><strong>Auth Service Business Logic</strong></td>
+        <td><code>AuthServiceTest</code></td>
+        <td>Service Layer + Mockito</td>
+        <td style="text-align:center;">15</td>
+        <td style="text-align:center; color:#166534; font-weight:700;">15</td>
+        <td style="text-align:center;">0</td>
+        <td style="text-align:center;"><span class="pass-badge">100%</span></td>
+      </tr>
+      <tr>
+        <td><strong>JWT Token Utilities</strong></td>
+        <td><code>JwtUtilTest</code></td>
+        <td>Security Utility Layer</td>
+        <td style="text-align:center;">4</td>
+        <td style="text-align:center; color:#166534; font-weight:700;">4</td>
+        <td style="text-align:center;">0</td>
+        <td style="text-align:center;"><span class="pass-badge">100%</span></td>
+      </tr>
+      <tr>
+        <td><strong>Property Service Business Logic</strong></td>
+        <td><code>PropertyServiceTest</code></td>
+        <td>Service Layer + Mockito</td>
+        <td style="text-align:center;">16</td>
+        <td style="text-align:center; color:#166534; font-weight:700;">16</td>
+        <td style="text-align:center;">0</td>
+        <td style="text-align:center;"><span class="pass-badge">100%</span></td>
+      </tr>
+      <tr class="total-row">
+        <td><strong>TOTAL VERIFIED</strong></td>
+        <td><strong>5 Test Classes</strong></td>
+        <td><strong>Full Multi-Layer Testing</strong></td>
+        <td style="text-align:center;"><strong>63</strong></td>
+        <td style="text-align:center; color:#166534;"><strong>63</strong></td>
+        <td style="text-align:center;"><strong>0</strong></td>
+        <td style="text-align:center; color:#166534;"><strong>100%</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="summary-box">
+    <p><strong>Verified Maven Surefire Execution Output:</strong></p>
+    <p>&bull; <code>auth-service</code> (4 test classes, 47 tests): <strong>47 passed, 0 failures, 0 errors</strong> (Time: 13.861 s)</p>
+    <p>&bull; <code>property-service</code> (1 test class, 16 tests): <strong>16 passed, 0 failures, 0 errors</strong> (Time: 6.016 s)</p>
+    <p>&bull; <strong>Combined Total: 63 tests executed, 0 failures, 0 errors. 100% success rate.</strong></p>
+  </div>
+
+
+  <!-- SECTION 5: INTERVIEW / MANAGER EXPLANATION GUIDE -->
+  <div class="service-divider"></div>
+  <h2 class="sec-heading">5. Developer Explanation Guide (For Manager / Interviewer)</h2>
+
+  <div class="qna-box">
+    <div class="qna-title">Q: "How did you fix registration input validation for phone numbers and emails?"</div>
+    <p style="margin:0; font-size:12px; color:#334155;">
+      "In <code>RegisterRequest</code>, I added <code>@NotBlank</code> and <code>@Pattern(regexp = '^[6-9]\d{9}$')</code> on <code>phoneNumber</code> (keeping it as a String). This enforces that only 10-digit Indian mobile numbers starting with 6, 7, 8, or 9 are accepted, while rejecting letters, wrong lengths, and invalid starting digits. For email, I verified that malformed patterns like <code>@abc.com</code> and <code>abc@</code> are rejected, and enhanced it with standard RFC-compliant regex syntax."
+    </p>
+  </div>
+
+  <div class="qna-box">
+    <div class="qna-title">Q: "Why did you need separate validation tests instead of just testing AuthService?"</div>
+    <p style="margin:0; font-size:12px; color:#334155;">
+      "Service-level unit tests (<code>AuthServiceTest</code>) call Java methods directly, which completely bypasses Bean Validation (<code>@Valid</code>). To test that validation annotations actually execute, I added two suites: <code>RegisterRequestValidationTest</code> using Jakarta <code>Validator</code> (testing 23 input combinations) and <code>AuthControllerValidationTest</code> using Spring <code>MockMvc</code> (testing that invalid HTTP requests return 400 Bad Request with field errors and 0 database writes)."
+    </p>
+  </div>
+
+  <div class="qna-box">
+    <div class="qna-title">Q: "What is the overall test coverage and pass rate now?"</div>
+    <p style="margin:0; font-size:12px; color:#334155;">
+      "Across Auth Service and Property Service, we now have <strong>63 passing unit and validation tests</strong> with a 100% success rate: 23 Bean Validation tests, 5 Controller MockMvc tests, 15 AuthService tests, 4 JwtUtil tests, and 16 PropertyService tests."
+    </p>
+  </div>
+
+</body>
+</html>

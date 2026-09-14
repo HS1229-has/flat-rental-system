@@ -219,4 +219,119 @@ class AuthServiceTest {
         assertEquals(1, list.size());
         assertEquals("testuser", list.get(0).getUsername());
     }
+    @Test
+    @DisplayName("Should register user when role is lowercase")
+    void testRegister_LowercaseRole() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("loweruser");
+        request.setEmail("lower@example.com");
+        request.setPassword("password123");
+        request.setFullName("Lower User");
+        request.setPhoneNumber("9876543210");
+        request.setRole("tenant");
+
+        when(userRepository.existsByUsername("loweruser")).thenReturn(false);
+        when(userRepository.existsByEmail("lower@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("encoded_password");
+
+        User savedUser = User.builder()
+                .id(11L)
+                .username("loweruser")
+                .email("lower@example.com")
+                .password("encoded_password")
+                .fullName("Lower User")
+                .phoneNumber("9876543210")
+                .role(Role.ROLE_TENANT)
+                .build();
+
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        UserResponse response = authService.register(request);
+
+        assertNotNull(response);
+        assertEquals("loweruser", response.getUsername());
+        assertEquals("ROLE_TENANT", response.getRole());
+
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+    @Test
+    @DisplayName("Should register user when role already has ROLE_ prefix")
+    void testRegister_RoleWithPrefix() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("prefixuser");
+        request.setEmail("prefix@example.com");
+        request.setPassword("password123");
+        request.setFullName("Prefix User");
+        request.setPhoneNumber("9876543210");
+        request.setRole("ROLE_TENANT");
+
+        when(userRepository.existsByUsername("prefixuser")).thenReturn(false);
+        when(userRepository.existsByEmail("prefix@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("encoded_password");
+
+        User savedUser = User.builder()
+                .id(12L)
+                .username("prefixuser")
+                .email("prefix@example.com")
+                .password("encoded_password")
+                .fullName("Prefix User")
+                .phoneNumber("9876543210")
+                .role(Role.ROLE_TENANT)
+                .build();
+
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        UserResponse response = authService.register(request);
+
+        assertNotNull(response);
+        assertEquals("prefixuser", response.getUsername());
+        assertEquals("ROLE_TENANT", response.getRole());
+
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+    @Test
+    @DisplayName("Should reject registration when role is null")
+    void testRegister_NullRole() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("nullrole");
+        request.setEmail("nullrole@example.com");
+        request.setPassword("password123");
+        request.setFullName("Null Role");
+        request.setPhoneNumber("9876543210");
+        request.setRole(null);
+
+        when(userRepository.existsByUsername("nullrole")).thenReturn(false);
+        when(userRepository.existsByEmail("nullrole@example.com")).thenReturn(false);
+
+        assertThrows(
+                NullPointerException.class,
+                () -> authService.register(request)
+        );
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+    @Test
+    @DisplayName("Should generate JWT with correct user claims")
+    void testLogin_JwtContainsCorrectClaims() {
+        LoginRequest request = new LoginRequest();
+        request.setUsername("testuser");
+        request.setPassword("password123");
+
+        when(userRepository.findByUsername("testuser"))
+                .thenReturn(Optional.of(sampleUser));
+
+        when(passwordEncoder.matches("password123", sampleUser.getPassword()))
+                .thenReturn(true);
+
+        AuthResponse response = authService.login(request);
+
+        assertNotNull(response);
+        assertNotNull(response.getToken());
+        assertFalse(response.getToken().isBlank());
+        assertEquals("Bearer", response.getTokenType());
+
+        assertEquals("testuser", jwtUtil.extractUsername(response.getToken()));
+        assertEquals("ROLE_TENANT", jwtUtil.extractRole(response.getToken()));
+    }
 }
+

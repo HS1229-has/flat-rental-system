@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LuxeFlats – Master Technical Project Review & Unit Testing Guide</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm 14mm 12mm 14mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.45;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    
+    /* Cover & Header */
+    .header-box {
+      border-bottom: 2.5px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .top-badge {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 8.5pt;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 4px;
+    }
+    h1.doc-title {
+      font-size: 19pt;
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+    .doc-subtitle {
+      font-size: 10.5pt;
+      color: #475569;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 9pt;
+    }
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .meta-label {
+      color: #64748b;
+      font-weight: 600;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .meta-value {
+      color: #0f172a;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    /* Headings */
+    h2.chapter-heading {
+      font-size: 13pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 18px 0 8px 0;
+      padding: 5px 10px;
+      background: #f1f5f9;
+      border-left: 5px solid #2563eb;
+      border-radius: 0 4px 4px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      page-break-after: avoid;
+    }
+    h3.section-heading {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 12px 0 5px 0;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 3px;
+      page-break-after: avoid;
+    }
+    h4.sub-heading {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #334155;
+      margin: 8px 0 4px 0;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 6px 0;
+    }
+    ul, ol {
+      margin: 0 0 8px 0;
+      padding-left: 18px;
+    }
+    li {
+      margin-bottom: 3px;
+    }
+
+    /* Code Blocks */
+    pre.code-block {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 8px 10px;
+      border-radius: 5px;
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 8pt;
+      line-height: 1.38;
+      overflow-x: auto;
+      margin: 6px 0 8px 0;
+      border: 1px solid #1e293b;
+      page-break-inside: avoid;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    code.inline {
+      background: #f1f5f9;
+      color: #0958d9;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 8.5pt;
+      font-weight: 600;
+    }
+    .code-comment { color: #94a3b8; font-style: italic; }
+    .code-kw { color: #f472b6; font-weight: bold; }
+    .code-ann { color: #fbbf24; font-weight: bold; }
+    .code-str { color: #34d399; }
+    .code-type { color: #60a5fa; }
+    .code-num { color: #fb923c; }
+
+    /* Tables */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0 10px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+    table.data-table th, table.data-table td {
+      border: 1px solid #cbd5e1;
+      padding: 5px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    table.data-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    table.data-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    /* Callout & Card Boxes */
+    .callout-box {
+      border-radius: 5px;
+      padding: 8px 10px;
+      margin: 6px 0 8px 0;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+    .box-info {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      border: 1px solid #bfdbfe;
+      border-left-width: 4px;
+    }
+    .box-warning {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: 4px solid #f59e0b;
+    }
+    .box-danger {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #ef4444;
+    }
+    .box-success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-left: 4px solid #22c55e;
+    }
+    .box-title {
+      font-weight: 700;
+      margin-bottom: 3px;
+      font-size: 9.5pt;
+    }
+
+    /* Viva Speech Card */
+    .speech-box {
+      background: #fdf4ff;
+      border: 1px solid #f0abfc;
+      border-left: 4px solid #c026d3;
+      border-radius: 5px;
+      padding: 8px 10px;
+      margin: 8px 0;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+    .speech-q {
+      font-weight: 800;
+      color: #701a75;
+      font-size: 9.5pt;
+      margin-bottom: 4px;
+    }
+    .speech-ans {
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+    .speech-hinglish {
+      color: #581c87;
+      font-style: italic;
+      font-size: 8.5pt;
+      background: #fae8ff;
+      padding: 4px 6px;
+      border-radius: 4px;
+    }
+
+    .diff-del {
+      background: #7f1d1d;
+      color: #fecaca;
+      display: block;
+      padding: 1px 4px;
+    }
+    .diff-add {
+      background: #14532d;
+      color: #bbf7d0;
+      display: block;
+      padding: 1px 4px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-box">
+    <div class="top-badge">LuxeFlats Microservices Project &bull; Comprehensive Viva & Technical Guide</div>
+    <h1 class="doc-title">Master Project Review &amp; Unit Testing Reference Guide</h1>
+    <div class="doc-subtitle">Exhaustive Code Walkthrough, Spring Boot Fundamentals, DTO &amp; Exception Architecture, Git Mastery, and 89-Test Unit Testing Suite</div>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">Project</span>
+        <span class="meta-value">LuxeFlats Rental Marketplace</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Architecture</span>
+        <span class="meta-value">Spring Boot 3 + Microservices</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Test Suite</span>
+        <span class="meta-value">89 Tests (100% Pass Rate)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Target Review</span>
+        <span class="meta-value">Project Viva / Tech Evaluation</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAPTER 1 -->
+  <h2 class="chapter-heading">Chapter 1: LuxeFlats Microservices Architecture &amp; System Flow</h2>
+  
+  <p>
+    <strong>LuxeFlats</strong> is a distributed real-estate rental platform engineered with Spring Boot 3 microservices adhering to the <strong>Database-per-Service</strong> pattern. Each service operates in complete domain isolation with its own persistent schema, communicating through synchronous RESTful contracts.
+  </p>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 14%;">Service</th>
+        <th style="width: 8%;">Port</th>
+        <th style="width: 30%;">Core Responsibilities</th>
+        <th style="width: 24%;">Database &amp; Entities</th>
+        <th style="width: 24%;">Inter-Service Dependencies</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>API Gateway</strong></td>
+        <td><code>8080</code></td>
+        <td>Central reverse proxy, unified entry point, routing requests to downstream services, CORS filter.</td>
+        <td>None (Stateless routing)</td>
+        <td>Routes to Ports 8081, 8082, 8083, 8084</td>
+      </tr>
+      <tr>
+        <td><strong>Auth Service</strong></td>
+        <td><code>8081</code></td>
+        <td>User registration, login, BCrypt password hashing, JWT generation and validation, role-based RBAC (<code>TENANT</code>, <code>OWNER</code>, <code>ADMIN</code>).</td>
+        <td>H2 DB (<code>authdb</code>)<br>Entity: <code>User</code></td>
+        <td>Standalone (Provides JWT to all clients)</td>
+      </tr>
+      <tr>
+        <td><strong>Property Service</strong></td>
+        <td><code>8082</code></td>
+        <td>Property listings CRUD, search filters (city, type, price, furnishing), pipe-delimited image storage, availability toggle.</td>
+        <td>H2 DB (<code>propertydb</code>)<br>Entity: <code>Property</code></td>
+        <td>Invoked by Booking Service to verify property existence &amp; owner identity.</td>
+      </tr>
+      <tr>
+        <td><strong>Booking Service</strong></td>
+        <td><code>8083</code></td>
+        <td>Booking lifecycle management (<code>PENDING</code> &rarr; <code>CONFIRMED</code> &rarr; <code>COMPLETED</code> / <code>CANCELLED</code>), tenant income verification, owner approval with contact exchange.</td>
+        <td>H2 DB (<code>bookingdb</code>)<br>Entity: <code>Booking</code></td>
+        <td>Calls Property Service (port 8082) via REST to validate property &amp; owner.</td>
+      </tr>
+      <tr>
+        <td><strong>Payment Service</strong></td>
+        <td><code>8084</code></td>
+        <td>Token payment (₹5,000 reservation lock), monthly rent payment, mock payment gateway simulation, tenant refund processing.</td>
+        <td>H2 DB (<code>paymentdb</code>)<br>Entity: <code>Payment</code></td>
+        <td>Called by frontend after booking confirmation; verifies tenant ownership.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout-box box-info">
+    <div class="box-title">Crucial Refactoring Note: Plain Java Transition (Removing Lombok)</div>
+    In our project, we refactored entities and DTOs across all microservices from Project Lombok annotations (<code>@Data</code>, <code>@Builder</code>, <code>@NoArgsConstructor</code>) to <strong>clean, standard Plain Java</strong>. This eliminates Lombok annotation-processor incompatibilities with modern JDK preview features (such as JDK 26 preview / Java 21 toolchains), provides 100% transparent bytecode without hidden synthetic methods, and guarantees rapid, deterministic Maven compilation.
+  </div>
+
+  <!-- CHAPTER 2 -->
+  <h2 class="chapter-heading">Chapter 2: Spring Boot Fundamentals &amp; Core Annotations</h2>
+
+  <h3 class="section-heading">1. Inversion of Control (IoC) &amp; Dependency Injection (DI)</h3>
+  <p>
+    In standard Java, an object creates its own dependencies using <code>new Service()</code>. This creates tight coupling. With Spring's <strong>Inversion of Control (IoC)</strong> container, control is inverted: the Spring Framework instantiates, configures, and manages the lifecycle of beans. 
+  </p>
+  <p>
+    <strong>Dependency Injection (DI)</strong> is the design pattern through which IoC is achieved. Spring injects required dependencies into classes automatically at runtime.
+  </p>
+
+  <h3 class="section-heading">2. Constructor Injection vs Field Injection (Why Field Injection is Bad)</h3>
+  <div class="callout-box box-warning">
+    <div class="box-title">Why we use Constructor Injection across all our Services:</div>
+    <ul>
+      <li><strong>Field Injection (<code>@Autowired private BookingRepository repo;</code>):</strong> Cannot make fields <code>final</code>; impossible to instantiate or test without a heavy Spring context; hides dependencies.</li>
+      <li><strong>Constructor Injection (Our Approach):</strong> Fields are declared <code class="inline">private final</code> (immutable thread safety). In unit tests, we can instantiate the service directly with mock objects using <code>new BookingService(mockRepo, mockWebClient)</code> without booting up Spring!</li>
+    </ul>
+  </div>
+
+  <pre class="code-block">
+<span class="code-comment">// Production Pattern Used in BookingService.java</span>
+<span class="code-ann">@Service</span>
+<span class="code-kw">public class</span> <span class="code-type">BookingService</span> {
+    <span class="code-kw">private final</span> <span class="code-type">BookingRepository</span> bookingRepository;
+    <span class="code-kw">private final</span> <span class="code-type">WebClient.Builder</span> webClientBuilder;
+
+    <span class="code-comment">// Constructor Injection - completely testable with pure Mockito</span>
+    <span class="code-kw">public</span> <span class="code-type">BookingService</span>(<span class="code-type">BookingRepository</span> bookingRepository, <span class="code-type">WebClient.Builder</span> webClientBuilder) {
+        <span class="code-kw">this</span>.bookingRepository = bookingRepository;
+        <span class="code-kw">this</span>.webClientBuilder = webClientBuilder;
+    }
+}
+  </pre>
+
+  <h3 class="section-heading">3. Spring Boot Annotation Reference Guide</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Annotation</th>
+        <th style="width: 35%;">Purpose &amp; Mechanism</th>
+        <th style="width: 40%;">Project Example</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>@SpringBootApplication</code></td>
+        <td>Meta-annotation combining <code>@Configuration</code>, <code>@EnableAutoConfiguration</code>, and <code>@ComponentScan</code>. Entry point.</td>
+        <td><code>BookingServiceApplication.java</code> main class.</td>
+      </tr>
+      <tr>
+        <td><code>@RestController</code></td>
+        <td>Combines <code>@Controller</code> and <code>@ResponseBody</code>. Automatically serializes Java return objects into JSON over HTTP.</td>
+        <td><code>BookingController</code>, <code>PaymentController</code>.</td>
+      </tr>
+      <tr>
+        <td><code>@Service</code> / <code>@Repository</code></td>
+        <td>Stereotype annotations marking business logic beans and database DAO components for Spring component scanning.</td>
+        <td><code>MockPaymentService</code>, <code>PaymentRepository</code>.</td>
+      </tr>
+      <tr>
+        <td><code>@GetMapping</code> / <code>@PostMapping</code></td>
+        <td>Routes HTTP GET and POST requests to specific controller methods.</td>
+        <td><code>@PostMapping("/api/bookings")</code></td>
+      </tr>
+      <tr>
+        <td><code>@PathVariable</code></td>
+        <td>Extracts dynamic values from the URL path.</td>
+        <td><code>@GetMapping("/{id}") public BookingResponse get(@PathVariable Long id)</code></td>
+      </tr>
+      <tr>
+        <td><code>@RequestBody</code></td>
+        <td>Deserializes incoming JSON request body into a strongly typed DTO object.</td>
+        <td><code>public PaymentResponse pay(@Valid @RequestBody PaymentRequest req)</code></td>
+      </tr>
+      <tr>
+        <td><code>@Entity</code> &amp; <code>@Table</code></td>
+        <td>JPA annotations mapping Java classes to relational database tables.</td>
+        <td><code>@Entity @Table(name = "bookings") public class Booking</code></td>
+      </tr>
+      <tr>
+        <td><code>@PrePersist</code> &amp; <code>@PreUpdate</code></td>
+        <td>JPA entity lifecycle callbacks that populate <code>createdAt</code> and <code>updatedAt</code> timestamps before SQL execution.</td>
+        <td>Auto-sets <code>createdAt = LocalDateTime.now()</code>.</td>
+      </tr>
+      <tr>
+        <td><code>@RestControllerAdvice</code></td>
+        <td>Global interceptor for handling exceptions across all controllers in a unified manner.</td>
+        <td><code>GlobalExceptionHandler.java</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- CHAPTER 3 -->
+  <div class="page-break"></div>
+  <h2 class="chapter-heading">Chapter 3: DTO Pattern &amp; Input Validation Architecture</h2>
+
+  <h3 class="section-heading">1. Why DTOs (Data Transfer Objects) are Essential</h3>
+  <p>
+    An <strong>Entity</strong> represents the internal database schema. A <strong>DTO</strong> represents the public contract between client and API. Exposing Entities directly is an anti-pattern because:
+  </p>
+  <ul>
+    <li><strong>Mass Assignment Attack:</strong> Malicious users can send JSON payloads containing fields like <code>role: "ADMIN"</code> or <code>status: "CONFIRMED"</code>. DTOs restrict input to only permitted editable fields.</li>
+    <li><strong>Data Leakage:</strong> Entities often contain internal metadata, audit logs, or password hashes. DTOs ensure only safe attributes are returned.</li>
+    <li><strong>Infinite Recursion:</strong> Jackson JSON serializer can enter infinite circular loops when serializing bidirectional JPA relationships (e.g. <code>User &harr; Booking</code>). DTOs eliminate circular dependencies.</li>
+    <li><strong>Schema Independence:</strong> Database columns can be renamed or refactored without breaking mobile apps or frontend web interfaces.</li>
+  </ul>
+
+  <h3 class="section-heading">2. Full DTO Code Implementations in LuxeFlats</h3>
+
+  <h4 class="sub-heading">A. RegisterRequest.java (Auth Service Input DTO with Regex Validation)</h4>
+  <p>Location: <code>auth-service/src/main/java/com/flatrental/auth/dto/RegisterRequest.java</code></p>
+  <pre class="code-block">
+<span class="code-kw">package</span> com.flatrental.auth.dto;
+
+<span class="code-kw">import</span> jakarta.validation.constraints.Email;
+<span class="code-kw">import</span> jakarta.validation.constraints.NotBlank;
+<span class="code-kw">import</span> jakarta.validation.constraints.Pattern;
+<span class="code-kw">import</span> jakarta.validation.constraints.Size;
+
+<span class="code-kw">public class</span> <span class="code-type">RegisterRequest</span> {
+    <span class="code-ann">@NotBlank</span>(message = <span class="code-str">"Username is required"</span>)
+    <span class="code-ann">@Size</span>(min = <span class="code-num">3</span>, max = <span class="code-num">50</span>, message = <span class="code-str">"Username must be between 3 and 50 characters"</span>)
+    <span class="code-kw">private</span> <span class="code-type">String</span> username;
+
+    <span class="code-ann">@NotBlank</span>(message = <span class="code-str">"Email is required"</span>)
+    <span class="code-ann">@Email</span>(regexp = <span class="code-str">"^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"</span>, message = <span class="code-str">"Please provide a valid email address"</span>)
+    <span class="code-kw">private</span> <span class="code-type">String</span> email;
+
+    <span class="code-ann">@NotBlank</span>(message = <span class="code-str">"Password is required"</span>)
+    <span class="code-ann">@Size</span>(min = <span class="code-num">6</span>, message = <span class="code-str">"Password must be at least 6 characters"</span>)
+    <span class="code-kw">private</span> <span class="code-type">String</span> password;
+
+    <span class="code-ann">@NotBlank</span>(message = <span class="code-str">"Full name is required"</span>)
+    <span class="code-kw">private</span> <span class="code-type">String</span> fullName;
+
+    <span class="code-ann">@NotBlank</span>(message = <span class="code-str">"Phone number is required"</span>)
+    <span class="code-ann">@Pattern</span>(regexp = <span class="code-str">"^[6-9]\\d{9}$"</span>, message = <span class="code-str">"Phone number must be a valid 10-digit Indian number"</span>)
+    <span class="code-kw">private</span> <span class="code-type">String</span> phoneNumber;
+
+    <span class="code-kw">private</span> <span class="code-type">String</span> role; <span class="code-comment">// Defaults to TENANT if null</span>
+
+    <span class="code-kw">public</span> <span class="code-type">RegisterRequest</span>() {}
+    <span class="code-comment">// Full Getters & Setters implemented in Plain Java...</span>
+    <span class="code-kw">public</span> <span class="code-type">String</span> <span class="code-type">getUsername</span>() { <span class="code-kw">return</span> username; }
+    <span class="code-kw">public void</span> <span class="code-type">setUsername</span>(<span class="code-type">String</span> username) { <span class="code-kw">this</span>.username = username; }
+    <span class="code-kw">public</span> <span class="code-type">String</span> <span class="code-type">getEmail</span>() { <span class="code-kw">return</span> email; }
+    <span class="code-kw">public void</span> <span class="code-type">setEmail</span>(<span class="code-type">String</span> email) { <span class="code-kw">this</span>.email = email; }
+    <span class="code-kw">public</span> <span class="code-type">String</span> <span class="code-type">getPassword</span>() { <span class="code-kw">return</span> password; }
+    <span class="code-kw">public void</span> <span class="code-type">setPassword</span>(<span class="code-type">String</span> password) { <span class="code-kw">this</span>.password = password; }
+    <span class="code-kw">public</span> <span class="code-type">String</span> <span class="code-type">getFullName</span>() { <span class="code-kw">return</span> fullName; }
+    <span class="code-kw">public void</span> <span class="code-type">setFullName</span>(<span class="code-type">String</span> fullName) { <span class="code-kw">this</span>.fullName = fullName; }
+    <span class="code-kw">public</span> <span class="code-type">String</span> <span class="code-type">getPhoneNumber</span>() { <span class="code-kw">return</span> phoneNumber; }
+    <span class="code-kw">public void</span> <span class="code-type">setPhoneNumber</span>(<span class="code-type">String</span> phoneNumber) { <span class="code-kw">this</span>.phoneNumber = phoneNumber; }
+    <span class="code-kw">public</span> <span class="code-type">String</span> <span class="code-type">getRole</span>() { <span class="code-kw">return</span> role; }
+    <span class="code-kw">public void</span> <span class="code-type">setRole</span>(<span class="code-type">String</span> role) { <span class="code-kw">this</span>.role = role; }
+}
+  </pre>
+
+  <h4 class="sub-heading">B. BookingRequest.java &amp; BookingResponse.java</h4>
+  <p>Location: <code>booking-service/src/main/java/com/flatrental/booking/dto/BookingRequest.java</code></p>
+  <pre class="code-block">
+<span class="code-kw">public class</span> <span class="code-type">BookingRequest</span> {
+    <span class="code-ann">@NotNull</span>(message = <span class="code-str">"Property ID is required"</span>)
+    <span class="code-kw">private</span> <span class="code-type">Long</span> propertyId;
+
+    <span class="code-ann">@NotNull</span>(message = <span class="code-str">"Start date is required"</span>)
+    <span class="code-kw">private</span> <span class="code-type">LocalDate</span> startDate;
+
+    <span class="code-ann">@NotNull</span>(message = <span class="code-str">"End date is required"</span>)
+    <span class="code-kw">private</span> <span class="code-type">LocalDate</span> endDate;
+
+    <span class="code-kw">private</span> <span class="code-type">String</span> tokenPaymentReference;
+    <span class="code-comment">// Getters and setters...</span>
+}
+  </pre>
+
+  <h4 class="sub-heading">C. PaymentRequest.java</h4>
+  <p>Location: <code>payment-service/src/main/java/com/flatrental/payment/dto/PaymentRequest.java</code></p>
+  <pre class="code-block">
+<span class="code-kw">public class</span> <span class="code-type">PaymentRequest</span> {
+    <span class="code-ann">@NotNull</span>(message = <span class="code-str">"Booking ID is required"</span>)
+    <span class="code-kw">private</span> <span class="code-type">Long</span> bookingId;
+
+    <span class="code-ann">@NotNull</span>(message = <span class="code-str">"Amount is required"</span>)
+    <span class="code-ann">@DecimalMin</span>(value = <span class="code-str">"0.01"</span>, message = <span class="code-str">"Amount must be greater than 0"</span>)
+    <span class="code-kw">private</span> <span class="code-type">BigDecimal</span> amount;
+
+    <span class="code-ann">@NotNull</span>(message = <span class="code-str">"Payment method is required"</span>)
+    <span class="code-kw">private</span> <span class="code-type">PaymentMethod</span> paymentMethod; <span class="code-comment">// CARD, UPI, NET_BANKING</span>
+
+    <span class="code-kw">private</span> <span class="code-type">String</span> paymentType; <span class="code-comment">// TOKEN, RENT</span>
+    <span class="code-comment">// Getters and setters...</span>
+}
+  </pre>
+
+  <!-- CHAPTER 4 -->
+  <div class="page-break"></div>
+  <h2 class="chapter-heading">Chapter 4: Centralized Exception Handling &amp; Global Error Contract</h2>
+
+  <h3 class="section-heading">1. The Problem with Distributed try-catch Blocks</h3>
+  <p>
+    Without centralized exception handling, controllers end up polluted with repetitive <code>try-catch</code> blocks. If an unhandled exception bubbles up, Spring Boot emits a default <strong>WhiteLabel Error Page</strong> with raw stack traces, leaking internal class paths and SQL queries to the outside world.
+  </p>
+
+  <h3 class="section-heading">2. The Standard Error Response: ApiError.java</h3>
+  <p>Location: <code>common / &lt;service&gt;/exception/ApiError.java</code></p>
+  <pre class="code-block">
+<span class="code-kw">package</span> com.flatrental.booking.exception;
+
+<span class="code-kw">import</span> java.time.LocalDateTime;
+<span class="code-kw">import</span> java.util.List;
+
+<span class="code-kw">public class</span> <span class="code-type">ApiError</span> {
+    <span class="code-kw">private int</span> status;
+    <span class="code-kw">private</span> <span class="code-type">String</span> message;
+    <span class="code-kw">private</span> <span class="code-type">LocalDateTime</span> timestamp;
+    <span class="code-kw">private</span> <span class="code-type">List&lt;String&gt;</span> details;
+
+    <span class="code-kw">public</span> <span class="code-type">ApiError</span>() {
+        <span class="code-kw">this</span>.timestamp = <span class="code-type">LocalDateTime</span>.now();
+    }
+
+    <span class="code-kw">public</span> <span class="code-type">ApiError</span>(<span class="code-kw">int</span> status, <span class="code-type">String</span> message, <span class="code-type">List&lt;String&gt;</span> details) {
+        <span class="code-kw">this</span>.status = status;
+        <span class="code-kw">this</span>.message = message;
+        <span class="code-kw">this</span>.timestamp = <span class="code-type">LocalDateTime</span>.now();
+        <span class="code-kw">this</span>.details = details;
+    }
+    <span class="code-comment">// Full Getters, Setters, and Static Builder...</span>
+}
+  </pre>
+
+  <h3 class="section-heading">3. Complete GlobalExceptionHandler.java Implementation</h3>
+  <p>Location: <code>booking-service/src/main/java/com/flatrental/booking/exception/GlobalExceptionHandler.java</code></p>
+  <pre class="code-block">
+<span class="code-kw">package</span> com.flatrental.booking.exception;
+
+<span class="code-kw">import</span> org.springframework.http.HttpStatus;
+<span class="code-kw">import</span> org.springframework.http.ResponseEntity;
+<span class="code-kw">import</span> org.springframework.web.bind.MethodArgumentNotValidException;
+<span class="code-kw">import</span> org.springframework.web.bind.annotation.ExceptionHandler;
+<span class="code-kw">import</span> org.springframework.web.bind.annotation.RestControllerAdvice;
+<span class="code-kw">import</span> java.util.List;
+<span class="code-kw">import</span> java.util.stream.Collectors;
+
+<span class="code-ann">@RestControllerAdvice</span>
+<span class="code-kw">public class</span> <span class="code-type">GlobalExceptionHandler</span> {
+
+    <span class="code-comment">// 1. Intercepts Jakarta Bean Validation failures (@Valid on DTO)</span>
+    <span class="code-ann">@ExceptionHandler</span>(<span class="code-type">MethodArgumentNotValidException</span>.<span class="code-kw">class</span>)
+    <span class="code-kw">public</span> <span class="code-type">ResponseEntity&lt;ApiError&gt;</span> handleValidationErrors(<span class="code-type">MethodArgumentNotValidException</span> ex) {
+        <span class="code-type">List&lt;String&gt;</span> errors = ex.getBindingResult().getFieldErrors()
+            .stream()
+            .map(error -&gt; error.getField() + <span class="code-str">": "</span> + error.getDefaultMessage())
+            .collect(<span class="code-type">Collectors</span>.toList());
+        
+        <span class="code-type">ApiError</span> apiError = <span class="code-kw">new</span> <span class="code-type">ApiError</span>(<span class="code-type">HttpStatus</span>.BAD_REQUEST.value(), <span class="code-str">"Validation Failed"</span>, errors);
+        <span class="code-kw">return new</span> <span class="code-type">ResponseEntity&lt;&gt;</span>(apiError, <span class="code-type">HttpStatus</span>.BAD_REQUEST);
+    }
+
+    <span class="code-comment">// 2. Intercepts Custom Business Domain Exceptions</span>
+    <span class="code-ann">@ExceptionHandler</span>(<span class="code-type">InvalidBookingException</span>.<span class="code-kw">class</span>)
+    <span class="code-kw">public</span> <span class="code-type">ResponseEntity&lt;ApiError&gt;</span> handleInvalidBooking(<span class="code-type">InvalidBookingException</span> ex) {
+        <span class="code-type">ApiError</span> apiError = <span class="code-kw">new</span> <span class="code-type">ApiError</span>(<span class="code-type">HttpStatus</span>.BAD_REQUEST.value(), ex.getMessage(), <span class="code-type">List</span>.of(ex.getMessage()));
+        <span class="code-kw">return new</span> <span class="code-type">ResponseEntity&lt;&gt;</span>(apiError, <span class="code-type">HttpStatus</span>.BAD_REQUEST);
+    }
+
+    <span class="code-comment">// 3. Fallback for unhandled unexpected server errors (500)</span>
+    <span class="code-ann">@ExceptionHandler</span>(<span class="code-type">Exception</span>.<span class="code-kw">class</span>)
+    <span class="code-kw">public</span> <span class="code-type">ResponseEntity&lt;ApiError&gt;</span> handleAllExceptions(<span class="code-type">Exception</span> ex) {
+        <span class="code-type">ApiError</span> apiError = <span class="code-kw">new</span> <span class="code-type">ApiError</span>(<span class="code-type">HttpStatus</span>.INTERNAL_SERVER_ERROR.value(), <span class="code-str">"An unexpected error occurred"</span>, <span class="code-type">List</span>.of(ex.getMessage()));
+        <span class="code-kw">return new</span> <span class="code-type">ResponseEntity&lt;&gt;</span>(apiError, <span class="code-type">HttpStatus</span>.INTERNAL_SERVER_ERROR);
+    }
+}
+  </pre>
+
+  <h3 class="section-heading">4. Before vs After: HTTP Response Payload Comparison</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 50%;">Without Handler (Default WhiteLabel Leak)</th>
+        <th style="width: 50%;">With GlobalExceptionHandler (LuxeFlats Standard)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <pre class="code-block" style="background:#450a0a;">
+{
+  "timestamp": "2026-09-14T08:00:00.123",
+  "status": 500,
+  "error": "Internal Server Error",
+  "trace": "java.lang.NullPointerException: Cannot invoke LocalDate.isAfter()...\n  at com.flatrental.booking.service.BookingService.createBooking()...",
+  "path": "/api/bookings"
+}
+          </pre>
+        </td>
+        <td>
+          <pre class="code-block" style="background:#064e3b;">
+{
+  "status": 400,
+  "message": "Start date and end date are required",
+  "timestamp": "2026-09-14T08:00:00.123",
+  "details": [
+    "Start date and end date are required"
+  ]
+}
+          </pre>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- CHAPTER 5 -->
+  <div class="page-break"></div>
+  <h2 class="chapter-heading">Chapter 5: Professional Git Architecture &amp; Reset vs Revert</h2>
+
+  <h3 class="section-heading">1. Git's 4 Logical Areas &amp; Lifecycle Flow</h3>
+  <p>Git does not simply track files; it operates across 4 distinct memory and disk boundaries:</p>
+  <ul>
+    <li><strong>Working Directory:</strong> The local sandbox on your filesystem where you actively write and edit code files.</li>
+    <li><strong>Staging Area (Index):</strong> The intermediate cache where changes are reviewed and prepared using <code class="inline">git add &lt;file&gt;</code> before being permanently committed.</li>
+    <li><strong>Local Repository (<code>.git</code>):</strong> The local cryptographic commit graph stored on your computer after executing <code class="inline">git commit -m "feat: add null validation"</code>.</li>
+    <li><strong>Remote Repository (GitHub / GitLab):</strong> The shared central server where team members push and sync branches using <code class="inline">git push origin feature-branch</code>.</li>
+  </ul>
+
+  <h3 class="section-heading">2. Enterprise Branching Strategy</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 20%;">Branch</th>
+        <th style="width: 25%;">Lifecycle &amp; Protection</th>
+        <th style="width: 55%;">Engineering Purpose &amp; Rules</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>main</code> / <code>master</code></td>
+        <td>Protected. Direct push strictly forbidden.</td>
+        <td>Contains production-ready code deployed to live AWS/production servers. Merges only allowed via approved Pull Requests.</td>
+      </tr>
+      <tr>
+        <td><code>develop</code></td>
+        <td>Integration branch.</td>
+        <td>Aggregates completed features from multiple developers for staging integration testing.</td>
+      </tr>
+      <tr>
+        <td><code>feature/&lt;name&gt;</code></td>
+        <td>Short-lived developer branches.</td>
+        <td>Example: <code>feature/booking-null-validation</code>. Created from <code>develop</code>, tested thoroughly, and merged via PR.</td>
+      </tr>
+      <tr>
+        <td><code>hotfix/&lt;name&gt;</code></td>
+        <td>Emergency branch.</td>
+        <td>Branched directly from <code>main</code> to fix critical production bugs, then cherry-picked/merged into both <code>main</code> and <code>develop</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="section-heading">3. Resolving Merge Conflicts Step-by-Step</h3>
+  <p>
+    Merge conflicts arise when Git cannot automatically reconcile concurrent line modifications across branches. Git inserts conflict markers directly into the file:
+  </p>
+  <pre class="code-block">
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD (Current Branch - e.g., main)
+if (request.getStartDate() == null || request.getEndDate() == null) {
+    throw new InvalidBookingException("Dates are mandatory");
+}
+=======
+if (request.getStartDate() == null || request.getEndDate() == null) {
+    throw new InvalidBookingException("Start date and end date are required");
+}
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/booking-validation (Incoming Branch)
+  </pre>
+  <p><strong>Resolution Steps:</strong> (1) Open file and discuss with author, (2) Keep desired code and delete markers (<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>, <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>), (3) Run <code>git add .</code>, (4) Finalize with <code>git commit -m "fix: resolve booking validation merge conflict"</code>.
+
+  <h3 class="section-heading">4. Git Reset vs Git Revert: The Definitive Comparison</h3>
+  <div class="callout-box box-info">
+    <div class="box-title">The Accounting Ledger Analogy (Master this for the Viva!)</div>
+    Imagine a corporate bank ledger where an erroneous entry was recorded: <em>"Paid ₹10,000 to John"</em>.
+    <br>
+    &bull; <strong><code>git reset</code> (Tearing the Page Out):</strong> Rewinds the timeline and erases history as if the transaction never occurred. In accounting, tearing out a ledger page is an audit violation. If teammates have already copied the ledger, their copies will conflict!
+    <br>
+    &bull; <strong><code>git revert</code> (Adding an Adjustment Entry):</strong> Adds a new entry at the bottom of the ledger: <em>"Reversal adjustment: Refunded ₹10,000 from John"</em>. History is preserved, audits pass cleanly, and team collaboration is 100% safe.
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 20%;">Command</th>
+        <th style="width: 25%;">Working Directory Impact</th>
+        <th style="width: 20%;">Staging Area Impact</th>
+        <th style="width: 35%;">When to Use (Industry Rule)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>git reset --soft HEAD~1</code></td>
+        <td>Changes kept untouched.</td>
+        <td>Changes remain staged!</td>
+        <td>Local only. Modifying commit message or adding forgotten files into previous commit.</td>
+      </tr>
+      <tr>
+        <td><code>git reset --mixed HEAD~1</code><br>(Default)</td>
+        <td>Changes kept untouched in files.</td>
+        <td>Changes un-staged.</td>
+        <td>Local only. Splitting a large commit into smaller commits.</td>
+      </tr>
+      <tr>
+        <td><code>git reset --hard HEAD~1</code></td>
+        <td><strong style="color:#ef4444;">Destroys all file changes!</strong></td>
+        <td><strong style="color:#ef4444;">Destroyed!</strong></td>
+        <td>Local only. Discarding unwanted experimental code permanently. <strong>Never use on pushed commits!</strong></td>
+      </tr>
+      <tr>
+        <td><code>git revert &lt;commit-hash&gt;</code></td>
+        <td>Applies inverse changes safely.</td>
+        <td>Stages inverse diff.</td>
+        <td><strong style="color:#22c55e;">MANDATORY for shared/pushed commits</strong> on GitHub. Non-destructive; creates a new commit undoing the mistake.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- CHAPTER 6 -->
+  <div class="page-break"></div>
+  <h2 class="chapter-heading">Chapter 6: Unit Testing Masterclass with JUnit 5 &amp; Mockito</h2>
+
+  <h3 class="section-heading">1. What is a Unit Test and Why do we Mock?</h3>
+  <p>
+    A <strong>Unit Test</strong> validates the behavior of the smallest testable piece of code (typically a single method) in total isolation from external systems such as databases, network sockets, or external microservices.
+  </p>
+  <ul>
+    <li><strong>Why not Integration Tests for everything?</strong> Running the full Spring Boot application (<code>@SpringBootTest</code>) takes 15–30 seconds per test because it boots Hibernate, embeds an H2 database, and scans beans. In contrast, pure Mockito unit tests execute in <strong>5 to 10 milliseconds</strong>!</li>
+    <li><strong>The AAA (Arrange-Act-Assert) Pattern:</strong>
+      <ol>
+        <li><strong>Arrange:</strong> Prepare mock dependencies, mock data, and define stub behaviors using <code>when().thenReturn()</code>.</li>
+        <li><strong>Act:</strong> Invoke the exact business method under test (e.g. <code>bookingService.createBooking(...)</code>).</li>
+        <li><strong>Assert:</strong> Verify expected outcomes using <code>assertEquals()</code>, <code>assertThrows()</code>, and behavior verification with <code>verify()</code>.</li>
+      </ol>
+    </li>
+  </ul>
+
+  <h3 class="section-heading">2. Core Mockito Annotations &amp; Methods</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Annotation / Method</th>
+        <th style="width: 35%;">Underlying Mechanism</th>
+        <th style="width: 40%;">Project Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>@ExtendWith(MockitoExtension.class)</code></td>
+        <td>JUnit 5 extension that initializes Mockito annotations and validates framework rules before each test.</td>
+        <td>Annotated on top of <code>BookingServiceTest</code> and <code>MockPaymentServiceTest</code>.</td>
+      </tr>
+      <tr>
+        <td><code>@Mock</code></td>
+        <td>Creates a simulated dummy instance of a dependency (returns defaults like <code>null</code> or <code>0</code> unless stubbed).</td>
+        <td><code>@Mock private BookingRepository bookingRepository;</code></td>
+      </tr>
+      <tr>
+        <td><code>@InjectMocks</code></td>
+        <td>Instantiates the real service under test and injects all created <code>@Mock</code> objects into its constructor.</td>
+        <td><code>@InjectMocks private BookingService bookingService;</code></td>
+      </tr>
+      <tr>
+        <td><code>when(...).thenReturn(...)</code></td>
+        <td>Configures stub behavior on mock methods.</td>
+        <td><code>when(bookingRepository.findById(1L)).thenReturn(Optional.of(sampleBooking));</code></td>
+      </tr>
+      <tr>
+        <td><code>assertThrows(...)</code></td>
+        <td>Asserts that a specific exception class is thrown when the executable lambda runs.</td>
+        <td><code>assertThrows(InvalidBookingException.class, () -&gt; service.createBooking(req, 1L));</code></td>
+      </tr>
+      <tr>
+        <td><code>verify(mock, never()).method(...)</code></td>
+        <td>Behavior verification: guarantees that a method was NEVER invoked during the execution path.</td>
+        <td><code>verify(bookingRepository, never()).save(any(Booking.class));</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- CHAPTER 7 -->
+  <div class="page-break"></div>
+  <h2 class="chapter-heading">Chapter 7: Booking Service Unit Testing Deep-Dive</h2>
+
+  <div class="callout-box box-info">
+    <div class="box-title">Booking Service Test File Coordinates</div>
+    <strong>Test File:</strong> <code>booking-service/src/test/java/com/flatrental/booking/service/BookingServiceTest.java</code><br>
+    <strong>Target Class:</strong> <code>booking-service/src/main/java/com/flatrental/booking/service/BookingService.java</code><br>
+    <strong>Total Tests:</strong> <strong>13 Tests</strong> (11 Baseline Tests + 2 Newly Engineered Defensive Tests) &bull; <strong>Pass Rate: 100%</strong>
+  </div>
+
+  <h3 class="section-heading">1. Breakdown of All 13 Tests in BookingServiceTest</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 5%;">#</th>
+        <th style="width: 38%;">Test Method Name</th>
+        <th style="width: 15%;">Type</th>
+        <th style="width: 42%;">Scenario &amp; Verification Logic</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>testCreateBooking_Success</code></td>
+        <td>Baseline</td>
+        <td>Valid dates; verifies booking is saved with status <code>PENDING</code>.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>testCreateBooking_WithTokenPaymentReference</code></td>
+        <td>Baseline</td>
+        <td>Valid request with token transaction reference attached; verifies reference is persisted.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>testCreateBooking_InvalidDates</code></td>
+        <td>Baseline</td>
+        <td>End date is before start date; verifies <code>InvalidBookingException</code> is thrown.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>testGetBookingById_Success</code></td>
+        <td>Baseline</td>
+        <td>Queries existing booking; verifies mapped <code>BookingResponse</code> matches repository entity.</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>testGetBookingById_NotFound</code></td>
+        <td>Baseline</td>
+        <td>Queries non-existent ID; verifies <code>InvalidBookingException("Booking not found")</code>.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>testUpdateStatus_ValidTransition</code></td>
+        <td>Baseline</td>
+        <td>Transitions status from <code>PENDING</code> &rarr; <code>CONFIRMED</code>; verifies update saved.</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><code>testUpdateStatus_AlreadyCancelled_ThrowsException</code></td>
+        <td>Baseline</td>
+        <td>Attempts transition on already-cancelled booking; verifies rejection exception.</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><code>testCancelBooking_Success</code></td>
+        <td>Baseline</td>
+        <td>Tenant cancels their own pending booking; verifies status set to <code>CANCELLED</code>.</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td><code>testSubmitVerification_InvalidIncome</code></td>
+        <td>Baseline</td>
+        <td>Tenant submits monthly income less than 3x rent; verifies verification failure.</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td><code>testApproveWithContactShare_Success</code></td>
+        <td>Baseline</td>
+        <td>Owner approves booking and shares contact details; verifies property owner validation passes.</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td><code>testApproveWithContactShare_Unauthorized</code></td>
+        <td>Baseline</td>
+        <td>User other than property owner attempts approval; verifies <code>UnauthorizedException</code>.</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td><code>testCreateBooking_NullStartDate_ThrowsException</code></td>
+        <td><strong style="color:#2563eb;">ADDED TEST</strong></td>
+        <td>Passes <code>startDate = null</code>. Asserts <code>InvalidBookingException</code>; verifies <code>save()</code> never called.</td>
+      </tr>
+      <tr>
+        <td>13</td>
+        <td><code>testCreateBooking_NullEndDate_ThrowsException</code></td>
+        <td><strong style="color:#2563eb;">ADDED TEST</strong></td>
+        <td>Passes <code>endDate = null</code>. Asserts <code>InvalidBookingException</code>; verifies <code>save()</code> never called.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="section-heading">2. Complete Source Code of the 2 Added Tests</h3>
+  <pre class="code-block">
+<span class="code-ann">@Test</span>
+<span class="code-ann">@DisplayName</span>(<span class="code-str">"Should reject booking when start date is missing (null)"</span>)
+<span class="code-kw">void</span> <span class="code-type">testCreateBooking_NullStartDate_ThrowsException</span>() {
+    <span class="code-comment">// Arrange</span>
+    <span class="code-type">BookingRequest</span> request = <span class="code-kw">new</span> <span class="code-type">BookingRequest</span>();
+    request.setPropertyId(<span class="code-num">100L</span>);
+    request.setStartDate(<span class="code-kw">null</span>); <span class="code-comment">// Missing start date</span>
+    request.setEndDate(<span class="code-type">LocalDate</span>.of(<span class="code-num">2026</span>, <span class="code-num">9</span>, <span class="code-num">30</span>));
+
+    <span class="code-comment">// Act &amp; Assert: Must throw InvalidBookingException, NOT NullPointerException</span>
+    <span class="code-type">InvalidBookingException</span> exception = <span class="code-type">assertThrows</span>(
+        <span class="code-type">InvalidBookingException</span>.<span class="code-kw">class</span>,
+        () -&gt; bookingService.createBooking(request, <span class="code-num">200L</span>)
+    );
+
+    <span class="code-type">assertEquals</span>(<span class="code-str">"Start date and end date are required"</span>, exception.getMessage());
+    <span class="code-comment">// Guarantee repository save was NEVER reached</span>
+    <span class="code-type">verify</span>(bookingRepository, <span class="code-type">never</span>()).save(<span class="code-type">any</span>(<span class="code-type">Booking</span>.<span class="code-kw">class</span>));
+}
+
+<span class="code-ann">@Test</span>
+<span class="code-ann">@DisplayName</span>(<span class="code-str">"Should reject booking when end date is missing (null)"</span>)
+<span class="code-kw">void</span> <span class="code-type">testCreateBooking_NullEndDate_ThrowsException</span>() {
+    <span class="code-comment">// Arrange</span>
+    <span class="code-type">BookingRequest</span> request = <span class="code-kw">new</span> <span class="code-type">BookingRequest</span>();
+    request.setPropertyId(<span class="code-num">100L</span>);
+    request.setStartDate(<span class="code-type">LocalDate</span>.of(<span class="code-num">2026</span>, <span class="code-num">9</span>, <span class="code-num">1</span>));
+    request.setEndDate(<span class="code-kw">null</span>); <span class="code-comment">// Missing end date</span>
+
+    <span class="code-comment">// Act &amp; Assert</span>
+    <span class="code-type">InvalidBookingException</span> exception = <span class="code-type">assertThrows</span>(
+        <span class="code-type">InvalidBookingException</span>.<span class="code-kw">class</span>,
+        () -&gt; bookingService.createBooking(request, <span class="code-num">200L</span>)
+    );
+
+    <span class="code-type">assertEquals</span>(<span class="code-str">"Start date and end date are required"</span>, exception.getMessage());
+    <span class="code-type">verify</span>(bookingRepository, <span class="code-type">never</span>()).save(<span class="code-type">any</span>(<span class="code-type">Booking</span>.<span class="code-kw">class</span>));
+}
+  </pre>
+
+  <h3 class="section-heading">3. Initial Failure, Root Cause &amp; Production Bug Fix</h3>
+  <div class="callout-box box-danger">
+    <div class="box-title">The Initial Test Failure</div>
+    <strong>Expected:</strong> <code>com.flatrental.booking.exception.InvalidBookingException</code><br>
+    <strong>Actual:</strong> <code>java.lang.NullPointerException: Cannot invoke "java.time.LocalDate.isAfter(java.time.chrono.ChronoLocalDate)" because the return value of "request.getEndDate()" is null</code><br>
+    <strong>Root Cause:</strong> Line 49 of <code>BookingService.java</code> directly executed date comparison:
+    <br><code>if (!request.getEndDate().isAfter(request.getStartDate()))</code>
+    <br>When <code>endDate</code> was null, invoking <code>.isAfter(...)</code> threw an unhandled NPE. When <code>startDate</code> was null, passing null into <code>isAfter(null)</code> also threw an NPE!
+  </div>
+
+  <h4 class="sub-heading">Before vs After Code Diff in BookingService.java (Lines 46-55):</h4>
+  <pre class="code-block">
+<span class="diff-del">- // BEFORE (VULNERABLE TO NULL POINTER EXCEPTIONS):</span>
+<span class="diff-del">- if (!request.getEndDate().isAfter(request.getStartDate())) {</span>
+<span class="diff-del">-     throw new InvalidBookingException("End date must be after start date");</span>
+<span class="diff-del">- }</span>
+
+<span class="diff-add">+ // AFTER (DEFENSIVE VALIDATION FIX):</span>
+<span class="diff-add">+ if (request == null) {</span>
+<span class="diff-add">+     throw new InvalidBookingException("Booking request cannot be null");</span>
+<span class="diff-add">+ }</span>
+<span class="diff-add">+ if (request.getStartDate() == null || request.getEndDate() == null) {</span>
+<span class="diff-add">+     throw new InvalidBookingException("Start date and end date are required");</span>
+<span class="diff-add">+ }</span>
+<span class="diff-add">+ if (!request.getEndDate().isAfter(request.getStartDate())) {</span>
+<span class="diff-add">+     throw new InvalidBookingException("End date must be after start date");</span>
+<span class="diff-add">+ }</span>
+  </pre>
+
+  <!-- CHAPTER 8 -->
+  <div class="page-break"></div>
+  <h2 class="chapter-heading">Chapter 8: Payment Service Unit Testing Deep-Dive</h2>
+
+  <div class="callout-box box-info">
+    <div class="box-title">Payment Service Test File Coordinates</div>
+    <strong>Test File:</strong> <code>payment-service/src/test/java/com/flatrental/payment/service/MockPaymentServiceTest.java</code><br>
+    <strong>Target Class:</strong> <code>payment-service/src/main/java/com/flatrental/payment/service/MockPaymentService.java</code><br>
+    <strong>Total Tests:</strong> <strong>13 Tests</strong> (10 Baseline Tests + 3 Newly Engineered Security Tests) &bull; <strong>Pass Rate: 100%</strong>
+  </div>
+
+  <h3 class="section-heading">1. Breakdown of All 13 Tests in MockPaymentServiceTest</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 5%;">#</th>
+        <th style="width: 38%;">Test Method Name</th>
+        <th style="width: 15%;">Type</th>
+        <th style="width: 42%;">Scenario &amp; Verification Logic</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>testCreatePayment_Token_Success</code></td>
+        <td>Baseline</td>
+        <td>Initial ₹5,000 token payment; verifies saved as <code>COMPLETED</code> with generated txn ref.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>testCreatePayment_Token_AlreadyExists_ThrowsException</code></td>
+        <td>Baseline</td>
+        <td>Attempts duplicate token payment for same booking; verifies duplicate rejection.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>testCreatePayment_Rent_Success</code></td>
+        <td>Baseline</td>
+        <td>Rent payment after token payment; verifies successful completion.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>testGetPaymentById_Success</code></td>
+        <td>Baseline</td>
+        <td>Queries existing payment ID; asserts mapped response match.</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>testGetPaymentById_NotFound</code></td>
+        <td>Baseline</td>
+        <td>Queries non-existent ID; asserts <code>PaymentNotFoundException</code>.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>testGetPaymentsByBookingId_Success</code></td>
+        <td>Baseline</td>
+        <td>Queries all payments belonging to a booking; returns list of payments.</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><code>testGetPaymentsByTenantId_Success</code></td>
+        <td>Baseline</td>
+        <td>Queries payment history for a specific tenant ID.</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><code>testUpdatePaymentStatus_Success</code></td>
+        <td>Baseline</td>
+        <td>Updates payment status; verifies modified timestamp and status change.</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td><code>testInitiateRefund_Success</code></td>
+        <td>Baseline</td>
+        <td>Owner/Tenant initiates refund on completed payment; refund service called.</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td><code>testInitiateRefund_NotCompleted_ThrowsException</code></td>
+        <td>Baseline</td>
+        <td>Attempts refund on pending or failed payment; verifies rejection.</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td><code>testCreatePayment_ZeroAmount_ThrowsException</code></td>
+        <td><strong style="color:#2563eb;">ADDED TEST</strong></td>
+        <td>Passes <code>amount = BigDecimal.ZERO</code>; asserts <code>PaymentProcessingException</code>.</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td><code>testCreatePayment_NegativeAmount_ThrowsException</code></td>
+        <td><strong style="color:#2563eb;">ADDED TEST</strong></td>
+        <td>Passes <code>amount = new BigDecimal("-5000.00")</code>; asserts <code>PaymentProcessingException</code>.</td>
+      </tr>
+      <tr>
+        <td>13</td>
+        <td><code>testInitiateRefund_WrongUser_ThrowsException</code></td>
+        <td><strong style="color:#2563eb;">ADDED TEST</strong></td>
+        <td>Tenant #999 attempts refunding payment owned by Tenant #200; asserts unauthorized rejection.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="section-heading">2. Complete Source Code of the 3 Added Tests</h3>
+  <pre class="code-block">
+<span class="code-ann">@Test</span>
+<span class="code-ann">@DisplayName</span>(<span class="code-str">"Should reject payment when amount is zero"</span>)
+<span class="code-kw">void</span> <span class="code-type">testCreatePayment_ZeroAmount_ThrowsException</span>() {
+    <span class="code-comment">// Arrange: Zero amount</span>
+    <span class="code-type">PaymentRequest</span> request = <span class="code-kw">new</span> <span class="code-type">PaymentRequest</span>();
+    request.setBookingId(<span class="code-num">100L</span>);
+    request.setAmount(<span class="code-type">BigDecimal</span>.ZERO);
+    request.setPaymentMethod(<span class="code-type">PaymentMethod</span>.CARD);
+    request.setPaymentType(<span class="code-str">"TOKEN"</span>);
+
+    <span class="code-comment">// Act &amp; Assert</span>
+    <span class="code-type">PaymentProcessingException</span> ex = <span class="code-type">assertThrows</span>(
+        <span class="code-type">PaymentProcessingException</span>.<span class="code-kw">class</span>,
+        () -&gt; paymentService.createPayment(request, <span class="code-num">200L</span>)
+    );
+
+    <span class="code-type">assertEquals</span>(<span class="code-str">"Payment amount must be greater than zero."</span>, ex.getMessage());
+    <span class="code-type">verify</span>(paymentRepository, <span class="code-type">never</span>()).save(<span class="code-type">any</span>(<span class="code-type">Payment</span>.<span class="code-kw">class</span>));
+}
+
+<span class="code-ann">@Test</span>
+<span class="code-ann">@DisplayName</span>(<span class="code-str">"Should reject payment when amount is negative"</span>)
+<span class="code-kw">void</span> <span class="code-type">testCreatePayment_NegativeAmount_ThrowsException</span>() {
+    <span class="code-comment">// Arrange: Negative amount (-₹5,000)</span>
+    <span class="code-type">PaymentRequest</span> request = <span class="code-kw">new</span> <span class="code-type">PaymentRequest</span>();
+    request.setBookingId(<span class="code-num">100L</span>);
+    request.setAmount(<span class="code-kw">new</span> <span class="code-type">BigDecimal</span>(<span class="code-str">"-5000.00"</span>));
+    request.setPaymentMethod(<span class="code-type">PaymentMethod</span>.CARD);
+    request.setPaymentType(<span class="code-str">"TOKEN"</span>);
+
+    <span class="code-comment">// Act &amp; Assert</span>
+    <span class="code-type">PaymentProcessingException</span> ex = <span class="code-type">assertThrows</span>(
+        <span class="code-type">PaymentProcessingException</span>.<span class="code-kw">class</span>,
+        () -&gt; paymentService.createPayment(request, <span class="code-num">200L</span>)
+    );
+
+    <span class="code-type">assertEquals</span>(<span class="code-str">"Payment amount must be greater than zero."</span>, ex.getMessage());
+    <span class="code-type">verify</span>(paymentRepository, <span class="code-type">never</span>()).save(<span class="code-type">any</span>(<span class="code-type">Payment</span>.<span class="code-kw">class</span>));
+}
+
+<span class="code-ann">@Test</span>
+<span class="code-ann">@DisplayName</span>(<span class="code-str">"Should reject refund when current user is not the payment owner"</span>)
+<span class="code-kw">void</span> <span class="code-type">testInitiateRefund_WrongUser_ThrowsException</span>() {
+    <span class="code-comment">// Arrange: Payment belongs to Tenant 200L, caller is Tenant 999L</span>
+    <span class="code-type">when</span>(paymentRepository.findById(<span class="code-num">1L</span>)).thenReturn(<span class="code-type">Optional</span>.of(sampleTokenPayment));
+
+    <span class="code-comment">// Act &amp; Assert</span>
+    <span class="code-type">PaymentProcessingException</span> ex = <span class="code-type">assertThrows</span>(
+        <span class="code-type">PaymentProcessingException</span>.<span class="code-kw">class</span>,
+        () -&gt; paymentService.initiateRefund(<span class="code-num">1L</span>, <span class="code-num">999L</span>)
+    );
+
+    <span class="code-type">assertEquals</span>(<span class="code-str">"You are not authorized to refund this payment."</span>, ex.getMessage());
+    <span class="code-type">verify</span>(refundService, <span class="code-type">never</span>()).processRefund(<span class="code-type">any</span>(<span class="code-type">Payment</span>.<span class="code-kw">class</span>));
+}
+  </pre>
+
+  <h3 class="section-heading">3. Critical Production Bugs &amp; Code Fixes</h3>
+  <div class="callout-box box-danger">
+    <div class="box-title">Critical Security &amp; Financial Flaws Uncovered by Unit Tests:</div>
+    <ul>
+      <li><strong>Flaw 1 (Zero &amp; Negative Amounts):</strong> <code>createPayment()</code> accepted zero or negative values. A user could pay ₹0 or -₹5,000 and the system saved the status as <code>COMPLETED</code>, locking properties for free or corrupting account books!</li>
+      <li><strong>Flaw 2 (IDOR Vulnerability in Refunds):</strong> <code>initiateRefund(paymentId, currentUserId)</code> took <code>currentUserId</code> as a parameter but never verified if it matched <code>payment.getTenantId()</code>! Any logged-in user could trigger refunds on other people's payments!</li>
+    </ul>
+  </div>
+
+  <h4 class="sub-heading">Production Fixes in MockPaymentService.java:</h4>
+  <pre class="code-block">
+<span class="code-comment">// 1. Fix for Zero/Negative Amounts (Lines 30-34):</span>
+<span class="code-kw">if</span> (request.getAmount() == <span class="code-kw">null</span> || request.getAmount().compareTo(<span class="code-type">BigDecimal</span>.ZERO) &lt;= <span class="code-num">0</span>) {
+    <span class="code-kw">throw new</span> <span class="code-type">PaymentProcessingException</span>(<span class="code-str">"Payment amount must be greater than zero."</span>);
+}
+
+<span class="code-comment">// 2. Fix for Unauthorized Refund IDOR (Lines 108-111):</span>
+<span class="code-kw">if</span> (!payment.getTenantId().equals(currentUserId)) {
+    <span class="code-kw">throw new</span> <span class="code-type">PaymentProcessingException</span>(<span class="code-str">"You are not authorized to refund this payment."</span>);
+}
+  </pre>
+
+  <div class="callout-box box-warning">
+    <div class="box-title">Advanced Mockito Insight: UnnecessaryStubbingException</div>
+    During test authoring, our initial zero-amount test contained: 
+    <code>when(paymentRepository.findByBookingId(100L)).thenReturn(Collections.emptyList());</code>
+    <br>
+    Mockito threw <code>org.mockito.exceptions.misusing.UnnecessaryStubbingException</code>. <strong>Why?</strong> Because our newly added validation guard throws <em>before</em> the code ever reaches <code>findByBookingId</code>! Mockito strict stubbing detects that the stub was never invoked. Removing the stub proved that the early exit guard works perfectly.
+  </div>
+
+  <!-- CHAPTER 9 -->
+  <div class="page-break"></div>
+  <h2 class="chapter-heading">Chapter 9: Auth &amp; Property Services Validation &amp; Controller Tests</h2>
+
+  <h3 class="section-heading">1. Auth Service Testing Strategy: Direct Validator vs MockMvc</h3>
+  <p>
+    When testing Spring Boot controllers, testing <code>AuthService.registerUser(request)</code> directly in unit tests <strong>bypasses</strong> Jakarta Bean Validation annotations (such as <code>@NotBlank</code>, <code>@Email</code>, and <code>@Pattern</code>). To achieve 100% test coverage, we created two complementary test suites:
+  </p>
+  <ul>
+    <li><strong>RegisterRequestValidationTest.java (23 Tests):</strong> Direct unit testing of the Jakarta <code>Validator</code> instance to test every edge case of phone regex (<code>^[6-9]\d{9}$</code>) and email format in isolation.</li>
+    <li><strong>AuthControllerValidationTest.java (5 Tests):</strong> Full HTTP mock testing with Spring <code>MockMvc</code> verifying that invalid payloads result in HTTP 400 Bad Request and that the database repository is never invoked.</li>
+  </ul>
+
+  <h3 class="section-heading">2. Auth Controller MockMvc Test Code</h3>
+  <p>Location: <code>auth-service/src/test/java/com/flatrental/auth/controller/AuthControllerValidationTest.java</code></p>
+  <pre class="code-block">
+<span class="code-ann">@WebMvcTest</span>(<span class="code-type">AuthController</span>.<span class="code-kw">class</span>)
+<span class="code-kw">public class</span> <span class="code-type">AuthControllerValidationTest</span> {
+    <span class="code-ann">@Autowired</span> <span class="code-kw">private</span> <span class="code-type">MockMvc</span> mockMvc;
+    <span class="code-ann">@MockBean</span> <span class="code-kw">private</span> <span class="code-type">AuthService</span> authService;
+    <span class="code-ann">@Autowired</span> <span class="code-kw">private</span> <span class="code-type">ObjectMapper</span> objectMapper;
+
+    <span class="code-ann">@Test</span>
+    <span class="code-ann">@DisplayName</span>(<span class="code-str">"HTTP 400 when registration request has invalid phone number"</span>)
+    <span class="code-kw">void</span> <span class="code-type">testRegister_InvalidPhone_Returns400</span>() <span class="code-kw">throws</span> <span class="code-type">Exception</span> {
+        <span class="code-type">RegisterRequest</span> req = <span class="code-kw">new</span> <span class="code-type">RegisterRequest</span>();
+        req.setUsername(<span class="code-str">"rahul123"</span>);
+        req.setEmail(<span class="code-str">"rahul@example.com"</span>);
+        req.setPassword(<span class="code-str">"pass1234"</span>);
+        req.setFullName(<span class="code-str">"Rahul Sharma"</span>);
+        req.setPhoneNumber(<span class="code-str">"1234567890"</span>); <span class="code-comment">// Invalid: does NOT start with 6-9!</span>
+
+        mockMvc.perform(post(<span class="code-str">"/api/auth/register"</span>)
+                .contentType(<span class="code-type">MediaType</span>.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath(<span class="code-str">"$.message"</span>).value(<span class="code-str">"Validation Failed"</span>))
+            .andExpect(jsonPath(<span class="code-str">"$.details[0]"</span>).value(containsString(<span class="code-str">"valid 10-digit Indian number"</span>)));
+
+        <span class="code-comment">// Verify service was never reached</span>
+        verify(authService, never()).registerUser(any());
+    }
+}
+  </pre>
+
+  <h3 class="section-heading">3. Property Service Test Suite (16 Tests)</h3>
+  <p>Location: <code>property-service/src/test/java/com/flatrental/property/service/PropertyServiceTest.java</code></p>
+  <ul>
+    <li><strong>Image Parsing Logic:</strong> Validates pipe-delimited image URL extraction (<code>"https://img1.jpg|https://img2.jpg"</code>) ensuring fallback behavior when images are empty.</li>
+    <li><strong>Availability Filtering:</strong> Tests active property search filtering (<code>findByAvailableTrue()</code> vs city/price queries).</li>
+    <li><strong>Ownership Verification:</strong> Rejects modification or deletion attempts when the requesting user's ID does not match the property's <code>ownerId</code>.</li>
+  </ul>
+
+  <!-- CHAPTER 10 -->
+  <div class="page-break"></div>
+  <h2 class="chapter-heading">Chapter 10: Master Project Review &amp; Viva Q&amp;A Cheat Sheet</h2>
+  <p><em>Use these script-ready answers word-for-word in front of your examiner or interviewer. Hinglish intuition is provided to cement your understanding!</em></p>
+
+  <div class="speech-box">
+    <div class="speech-q">Q1: "Can you give a technical high-level overview of your project architecture?"</div>
+    <div class="speech-ans">
+      <strong>Your Answer:</strong> "Sir, LuxeFlats is a real-estate rental marketplace engineered with a Spring Boot 3 microservices architecture following the Database-per-Service pattern. We have an API Gateway on port 8080 acting as a reverse proxy, routing to Auth Service on 8081 for JWT authentication, Property Service on 8082 for rental listings, Booking Service on 8083 for lease lifecycle management, and Payment Service on 8084 for token reservations and rent payments. Services communicate via RESTful contracts. Furthermore, we designed all entities and DTOs in standard Plain Java without Lombok to ensure complete JDK 26 preview compatibility and transparent bytecode."
+    </div>
+    <div class="speech-hinglish">
+      <strong>Hinglish Samajh:</strong> Seedha bolo ki project Spring Boot microservices par hai, har service ka alag database hai (Database-per-Service). Gateway port 8080 par hai jo baki 4 services (Auth, Property, Booking, Payment) ko route karta hai. Sab REST se judte hain aur Lombok hata ke clean Java use kiya hai.
+    </div>
+  </div>
+
+  <div class="speech-box">
+    <div class="speech-q">Q2: "Why do you use DTOs instead of passing JPA Entities directly to the frontend?"</div>
+    <div class="speech-ans">
+      <strong>Your Answer:</strong> "Sir, passing JPA Entities directly exposes the internal database schema and creates severe security vulnerabilities like Mass Assignment—where an attacker could inject an administrative role or modify payment status. DTOs decouple our internal persistence model from our external API contract. They also prevent Jackson recursive serialization issues in bidirectional relationships and allow us to isolate Jakarta Bean Validation rules on incoming payloads."
+    </div>
+    <div class="speech-hinglish">
+      <strong>Hinglish Samajh:</strong> Entity DB table hai, DTO bahar walo ke liye contract hai. Agar direct entity doge toh koi role='ADMIN' bhejke hack kar sakta hai (mass assignment) ya password hash leak ho jayega. DTO sirf wahi fields leti/deti hai jo zaroori hain.
+    </div>
+  </div>
+
+  <div class="speech-box">
+    <div class="speech-q">Q3: "How does Centralized Exception Handling work in your microservices?"</div>
+    <div class="speech-ans">
+      <strong>Your Answer:</strong> "We implement centralized exception handling using <code>@RestControllerAdvice</code> with custom <code>@ExceptionHandler</code> methods in <code>GlobalExceptionHandler.java</code>. Instead of writing try-catch blocks in each controller, unhandled domain exceptions like <code>InvalidBookingException</code> or validation failures like <code>MethodArgumentNotValidException</code> are intercepted globally. We translate them into a standardized <code>ApiError</code> JSON payload with HTTP status codes like 400 Bad Request, hiding stack traces from end-users."
+    </div>
+    <div class="speech-hinglish">
+      <strong>Hinglish Samajh:</strong> Har controller me try-catch lagane ke bajay ek global class banayi <code>@RestControllerAdvice</code> wali. Koi bhi error aaye, ye pakadti hai aur clean JSON (ApiError) 400 status ke sath bhejti hai, jisse default WhiteLabel error page aur internal details leak na ho.
+    </div>
+  </div>
+
+  <div class="speech-box">
+    <div class="speech-q">Q4: "Did you write unit tests? What testing stack did you use?"</div>
+    <div class="speech-ans">
+      <strong>Your Answer:</strong> "Yes, sir. We authored a comprehensive 89-test unit testing suite across our services with a 100% pass rate. We utilized <strong>JUnit 5</strong> as our testing engine and <strong>Mockito</strong> for mock creation and stubbing. In our controllers, we used Spring's <code>MockMvc</code> to test HTTP endpoints without booting a heavy servlet container. We follow the Arrange-Act-Assert (AAA) pattern for test structure."
+    </div>
+    <div class="speech-hinglish">
+      <strong>Hinglish Samajh:</strong> Bolna 89 unit tests likhe hain 100% pass rate ke sath. JUnit 5 aur Mockito use kiya hai. Har test 5 se 10 millisecond me chalta hai bina poora Spring Boot boot kiye.
+    </div>
+  </div>
+
+  <div class="speech-box">
+    <div class="speech-q">Q5: "What real bugs did your unit tests uncover in Booking Service?"</div>
+    <div class="speech-ans">
+      <strong>Your Answer:</strong> "In <code>BookingServiceTest</code>, when we added boundary tests for null start and end dates (<code>testCreateBooking_NullStartDate_ThrowsException</code>), both tests failed with an unhandled <code>NullPointerException</code> instead of our domain <code>InvalidBookingException</code>. The root cause was that line 49 in <code>BookingService.java</code> called <code>request.getEndDate().isAfter(request.getStartDate())</code> without prior null checks. We fixed this by introducing defensive guard clauses validating null request and null dates before the date comparison."
+    </div>
+    <div class="speech-hinglish">
+      <strong>Hinglish Samajh:</strong> Booking me jab start ya end date null aati thi, toh code direct <code>.isAfter()</code> call karta tha jisse NullPointerException aati thi. Hamne unit test likha, fail hua, fir code me null checks lagaye date comparison se pehle.
+    </div>
+  </div>
+
+  <div class="speech-box">
+    <div class="speech-q">Q6: "What critical bugs did you catch in Payment Service?"</div>
+    <div class="speech-ans">
+      <strong>Your Answer:</strong> "Our unit tests uncovered two severe flaws in <code>MockPaymentService.java</code>. First, the service allowed ₹0 and negative payment amounts to be processed and marked as <code>COMPLETED</code>. Second, the <code>initiateRefund()</code> method failed to check if the caller was the actual owner of the payment, creating an IDOR authorization vulnerability. We added early-exit domain guards checking <code>amount.compareTo(BigDecimal.ZERO) &lt;= 0</code> and verifying <code>payment.getTenantId().equals(currentUserId)</code>."
+    </div>
+    <div class="speech-hinglish">
+      <strong>Hinglish Samajh:</strong> Payment service me do bade bug pakde: Pehla, log 0 ya negative rupee dekar bhi payment complete kar lete the. Doosra, koi bhi user kisi aur ka payment refund karwa sakta tha. Hamne unit test banaye aur service me strict amount aur tenant authorization checks lagaye.
+    </div>
+  </div>
+
+  <div class="speech-box">
+    <div class="speech-q">Q7: "Explain Mockito Strict Stubbing and UnnecessaryStubbingException."</div>
+    <div class="speech-ans">
+      <strong>Your Answer:</strong> "Mockito 3+ enforces Strict Stubbing to prevent dead code in test suites. If a test stubs a method using <code>when(mock.method()).thenReturn(...)</code> but the execution path exits before reaching that method, Mockito throws <code>UnnecessaryStubbingException</code>. We experienced this in our zero-amount payment test: because our validation guard exited early, the repository mock was never called. Removing the unnecessary stub verified that our early exit guard was working as intended."
+    </div>
+    <div class="speech-hinglish">
+      <strong>Hinglish Samajh:</strong> Agar tumne mock banaya lekin code wahan tak pahucha hi nahi (pehle hi exception fek di), toh Mockito <code>UnnecessaryStubbingException</code> fekta hai. Isse prove hota hai ki hamara validation check code ke shuru me hi rok deta hai.
+    </div>
+  </div>
+
+  <div class="speech-box">
+    <div class="speech-q">Q8: "What is the exact technical difference between git reset and git revert?"</div>
+    <div class="speech-ans">
+      <strong>Your Answer:</strong> "Git reset rewinds the branch HEAD pointer and modifies past commit history, which can permanently delete commits (especially with <code>--hard</code>). Because it rewrites history, it is only safe for local, unpushed branches. In contrast, <code>git revert</code> is non-destructive: it calculates the inverse diff of a commit and appends a brand new commit to the timeline. It preserves complete history and is the industry standard for undoing changes on shared, pushed remote branches."
+    </div>
+    <div class="speech-hinglish">
+      <strong>Hinglish Samajh:</strong> Bank ledger yaad rakho! Reset ka matlab panna faadna (history delete karna) - dangerous agar sabke paas copy ho. Revert ka matlab nayi entry daal ke hisaab barabar karna - 100% safe aur professional standard jo sabke sath sync rehta hai.
+    </div>
+  </div>
+
+</body>
+</html>

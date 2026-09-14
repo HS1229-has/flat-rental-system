@@ -11,6 +11,7 @@ import com.flatrental.payment.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Service("mockPaymentService")
@@ -27,6 +28,9 @@ public class MockPaymentService implements PaymentService {
     @Override
     @Transactional
     public PaymentResponse createPayment(PaymentRequest request, Long tenantId) {
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new PaymentProcessingException("Payment amount must be greater than zero.");
+        }
         // Prevent duplicate payments of the SAME TYPE for the same booking
         List<Payment> existingPayments = paymentRepository.findByBookingId(request.getBookingId());
         String reqType = request.getPaymentType();
@@ -101,9 +105,15 @@ public class MockPaymentService implements PaymentService {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with id: " + paymentId));
 
+        if (!payment.getTenantId().equals(currentUserId)) {
+            throw new PaymentProcessingException("You are not authorized to refund this payment.");
+        }
+
         if (payment.getStatus() != PaymentStatus.COMPLETED && payment.getStatus() != PaymentStatus.SUCCESS) {
             throw new PaymentProcessingException("Only completed/successful payments can be refunded.");
         }
+
+
 
         // Set status to REFUND_PENDING initially
         payment.setStatus(PaymentStatus.REFUND_PENDING);

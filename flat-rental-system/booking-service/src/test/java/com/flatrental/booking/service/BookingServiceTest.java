@@ -241,4 +241,31 @@ class BookingServiceTest {
         assertThrows(InvalidBookingException.class, () ->
                 bookingService.approveWithContactShare(1L, contactDto, 999L)); // Not owner
     }
+    @Test
+    @DisplayName("Should reject booking when start date is missing")
+    void testCreateBooking_NullStartDate_ThrowsException() {
+        BookingRequest request = new BookingRequest();
+        request.setPropertyId(100L);
+        request.setStartDate(null);
+        request.setEndDate(LocalDate.of(2026, 9, 30));
+
+        assertThrows(InvalidBookingException.class,
+                () -> bookingService.createBooking(request, 200L));
+
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    @DisplayName("Should reject booking when end date is missing")
+    void testCreateBooking_NullEndDate_ThrowsException() {
+        BookingRequest request = new BookingRequest();
+        request.setPropertyId(100L);
+        request.setStartDate(LocalDate.of(2026, 9, 1));
+        request.setEndDate(null);
+
+        assertThrows(InvalidBookingException.class,
+                () -> bookingService.createBooking(request, 200L));
+
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
 }
