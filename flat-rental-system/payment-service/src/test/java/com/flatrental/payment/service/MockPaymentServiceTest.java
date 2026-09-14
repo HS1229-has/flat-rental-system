@@ -204,4 +204,48 @@ class MockPaymentServiceTest {
         assertThrows(PaymentProcessingException.class, () -> paymentService.initiateRefund(1L, 200L));
         verify(refundService, never()).processRefund(any());
     }
+    @Test
+    @DisplayName("Should reject payment with zero amount")
+    void testCreatePayment_ZeroAmount_ThrowsException() {
+        PaymentRequest request = new PaymentRequest();
+        request.setBookingId(100L);
+        request.setAmount(BigDecimal.ZERO);
+        request.setPaymentMethod(PaymentMethod.CARD);
+        request.setPaymentType("TOKEN");
+
+
+        assertThrows(PaymentProcessingException.class,
+                () -> paymentService.createPayment(request, 200L));
+
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should reject payment with negative amount")
+    void testCreatePayment_NegativeAmount_ThrowsException() {
+        PaymentRequest request = new PaymentRequest();
+        request.setBookingId(100L);
+        request.setAmount(new BigDecimal("-5000.00"));
+        request.setPaymentMethod(PaymentMethod.CARD);
+        request.setPaymentType("TOKEN");
+
+
+
+        assertThrows(PaymentProcessingException.class,
+                () -> paymentService.createPayment(request, 200L));
+
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should reject refund when current user is not the payment owner")
+    void testInitiateRefund_WrongUser_ThrowsException() {
+        when(paymentRepository.findById(1L))
+                .thenReturn(Optional.of(sampleTokenPayment));
+
+        assertThrows(PaymentProcessingException.class,
+                () -> paymentService.initiateRefund(1L, 999L));
+
+        verify(refundService, never()).processRefund(any(Payment.class));
+    }
 }

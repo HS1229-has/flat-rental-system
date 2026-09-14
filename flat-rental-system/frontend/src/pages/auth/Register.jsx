@@ -48,7 +48,7 @@ const Register = () => {
     if (!formData.email.trim()) {
       errs.email = 'Email address is required';
     } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(formData.email.trim())) {
         errs.email = 'Please enter a valid email address';
       }
@@ -60,13 +60,11 @@ const Register = () => {
       errs.password = 'Password must be at least 6 characters';
     }
 
-    if (!formData.phoneNumber.trim()) {
+    const trimmedPhone = formData.phoneNumber.trim();
+    if (!trimmedPhone) {
       errs.phoneNumber = 'Phone number is required';
-    } else {
-      const numericPhone = formData.phoneNumber.replace(/\D/g, '');
-      if (numericPhone.length !== 10) {
-        errs.phoneNumber = 'Phone number must be exactly 10 digits';
-      }
+    } else if (!/^[6-9]\d{9}$/.test(trimmedPhone)) {
+      errs.phoneNumber = 'Phone number must be a valid 10-digit Indian mobile number (e.g. 9876543210)';
     }
 
     setFieldErrors(errs);
@@ -88,7 +86,7 @@ const Register = () => {
       await register({
         ...formData,
         email: formData.email.trim(),
-        phoneNumber: formData.phoneNumber.replace(/\D/g, '') // Send clean 10-digit number
+        phoneNumber: formData.phoneNumber.trim()
       });
       navigate('/login', { state: { message: 'Registration successful! Please login.' } });
     } catch (err) {

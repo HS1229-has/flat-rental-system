@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Booking Service – Unit Testing Report | LuxeFlats</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 10mm 12mm 10mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11.5px;
+      line-height: 1.4;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+    .header-box {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .top-badge {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    h1.doc-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 3px 0;
+      color: #0f172a;
+      letter-spacing: -0.2px;
+    }
+    .doc-subtitle {
+      font-size: 12px;
+      color: #475569;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .meta-label {
+      color: #64748b;
+      font-weight: 600;
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .meta-value {
+      color: #0f172a;
+      font-weight: 600;
+      margin-top: 1px;
+    }
+    h2.sec-heading {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 12px 0 6px 0;
+      padding-bottom: 3px;
+      border-bottom: 1.5px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sec-number {
+      background: #0f172a;
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    p {
+      margin: 0 0 6px 0;
+      text-align: justify;
+    }
+    ul, ol {
+      margin: 0 0 6px 0;
+      padding-left: 18px;
+    }
+    li {
+      margin-bottom: 3px;
+    }
+    table.report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 10px 0;
+      font-size: 10.5px;
+      page-break-inside: avoid;
+    }
+    table.report-table th {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 5px 6px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 10.5px;
+      border: 1px solid #0f172a;
+    }
+    table.report-table td {
+      padding: 4px 6px;
+      border: 1px solid #cbd5e1;
+      vertical-align: middle;
+    }
+    table.report-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .badge-pass {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .badge-fail {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    .code-block {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10.5px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      margin: 5px 0 8px 0;
+      overflow-x: auto;
+      line-height: 1.35;
+      page-break-inside: avoid;
+    }
+    .code-comment {
+      color: #94a3b8;
+    }
+    .code-keyword {
+      color: #f43f5e;
+    }
+    .code-string {
+      color: #38bdf8;
+    }
+    .code-type {
+      color: #a78bfa;
+    }
+    .info-card {
+      background: #f8fafc;
+      border-left: 3.5px solid #0284c7;
+      border-right: 1px solid #e2e8f0;
+      border-top: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      border-radius: 0 5px 5px 0;
+      padding: 6px 10px;
+      margin: 6px 0 9px 0;
+      font-size: 11px;
+    }
+    .alert-card {
+      background: #fffbeb;
+      border-left: 3.5px solid #d97706;
+      border-right: 1px solid #fef3c7;
+      border-top: 1px solid #fef3c7;
+      border-bottom: 1px solid #fef3c7;
+      border-radius: 0 5px 5px 0;
+      padding: 6px 10px;
+      margin: 6px 0 9px 0;
+      font-size: 11px;
+    }
+    .error-card {
+      background: #fef2f2;
+      border-left: 3.5px solid #ef4444;
+      border-right: 1px solid #fee2e2;
+      border-top: 1px solid #fee2e2;
+      border-bottom: 1px solid #fee2e2;
+      border-radius: 0 5px 5px 0;
+      padding: 6px 10px;
+      margin: 6px 0 9px 0;
+      font-size: 11px;
+    }
+    .success-card {
+      background: #f0fdf4;
+      border-left: 3.5px solid #16a34a;
+      border-right: 1px solid #dcfce7;
+      border-top: 1px solid #dcfce7;
+      border-bottom: 1px solid #dcfce7;
+      border-radius: 0 5px 5px 0;
+      padding: 6px 10px;
+      margin: 6px 0 9px 0;
+      font-size: 11px;
+    }
+    .card-title {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+      font-size: 11px;
+    }
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 8px 0;
+      page-break-inside: avoid;
+    }
+    .screenshot-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      padding: 5px;
+      background: #ffffff;
+      text-align: center;
+    }
+    .screenshot-box img {
+      width: 100%;
+      max-height: 135px;
+      object-fit: contain;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+    .caption {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 3px;
+      font-weight: 500;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+    .tag-draft {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 600;
+    }
+    .tag-state {
+      background: #f5f3ff;
+      color: #6d28d9;
+      border: 1px solid #ddd6fe;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 600;
+    }
+    .tag-verify {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 600;
+    }
+    .stat-pill {
+      display: inline-block;
+      font-weight: 700;
+      color: #0f172a;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid #cbd5e1;
+      font-size: 9.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1 ==================== -->
+  <div class="header-box">
+    <div class="top-badge">Microservices Unit Testing Documentation</div>
+    <h1 class="doc-title">Booking Service – Unit Testing Report</h1>
+    <div class="doc-subtitle">Flat Rental System (LuxeFlats) &bull; Lease Lifecycle, Date Boundary Hardening & Defect Rectification</div>
+    
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">Microservice</span>
+        <span class="meta-value">booking-service (Port 8083)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Target Service</span>
+        <span class="meta-value">BookingService.java</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Test Suite</span>
+        <span class="meta-value">BookingServiceTest.java</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Test Framework</span>
+        <span class="meta-value">JUnit 5 / Mockito / Assertions</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Team Members</span>
+        <span class="meta-value">Harsh Sahu, Kshitij Goel, Tanya Gupta</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Java / Spring</span>
+        <span class="meta-value">Java 21 / Spring Boot 3.x</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Execution Tool</span>
+        <span class="meta-value">Maven Surefire Plugin 3.2.5</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Verified Status</span>
+        <span class="meta-value" style="color: #166534; font-weight: 700;">13 / 13 Passed (100%)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION A: OBJECTIVE & SCOPE -->
+  <h2 class="sec-heading"><span class="sec-number">1</span> Objective & Testing Scope</h2>
+  <p>
+    The Booking Service is the core orchestrator of rental agreements in the LuxeFlats platform. It tracks lease drafts, 
+    manages multi-step state transitions across the booking lifecycle (from <code>APPLICATION_DRAFT</code> to <code>CONFIRMED</code> or <code>CANCELLED</code>), 
+    coordinates tenant verification records, and facilitates owner contact sharing.
+  </p>
+  <p>
+    The primary objectives of this unit-testing exercise were:
+  </p>
+  <ul>
+    <li><strong>Verify Core Booking Logic:</strong> Ensure that rental applications initialize correctly, process token payment references, and validate chronological lease boundaries.</li>
+    <li><strong>Enforce Finite State Machine Integrity:</strong> Confirm that valid transitions succeed while terminal states (e.g. <code>CANCELLED</code>) strictly reject further modifications.</li>
+    <li><strong>Verify Role & Verification Safeguards:</strong> Validate monthly income checks and ensure that only verified property owners can approve bookings.</li>
+    <li><strong>Identify & Rectify Missing Null-Date Handling:</strong> Proactively test edge cases where incoming requests contain null <code>startDate</code> or <code>endDate</code> values to prevent server crashes.</li>
+  </ul>
+
+  <!-- SECTION B: EXISTING TEST COVERAGE -->
+  <h2 class="sec-heading"><span class="sec-number">2</span> Existing Test Coverage (11 Baseline Tests)</h2>
+  <p>
+    Prior to our edge-case review, <code>BookingServiceTest.java</code> contained <strong>11 unit test cases</strong> covering 
+    standard operational scenarios using Mockito mocks:
+  </p>
+
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th style="width: 5%;">#</th>
+        <th style="width: 32%;">Test Case Method</th>
+        <th style="width: 14%;">Category</th>
+        <th style="width: 39%;">Verification Purpose</th>
+        <th style="width: 10%;">Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>testCreateBooking_Success</code></td>
+        <td><span class="tag-draft">Creation</span></td>
+        <td>Creates booking draft with valid dates; verifies status <code>APPLICATION_DRAFT</code> and repository save.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>testCreateBooking_WithTokenPaymentReference</code></td>
+        <td><span class="tag-draft">Token Deposit</span></td>
+        <td>Advances status directly to <code>PENDING_OWNER_APPROVAL</code> when token payment reference is supplied.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>testCreateBooking_InvalidDates</code></td>
+        <td><span class="stat-pill">Validation</span></td>
+        <td>Rejects inverted date range (endDate &lt; startDate); throws <code>InvalidBookingException</code> and avoids DB save.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>testGetBookingById_Success</code></td>
+        <td><span class="stat-pill">Query</span></td>
+        <td>Retrieves booking by primary key ID (1L); validates mapped DTO properties.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>testGetBookingById_NotFound</code></td>
+        <td><span class="stat-pill">Exception</span></td>
+        <td>Queries non-existent ID (999L); asserts <code>ResourceNotFoundException</code> is thrown.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>testUpdateStatus_ValidTransition</code></td>
+        <td><span class="tag-state">Lifecycle</span></td>
+        <td>Allows transition from <code>APPLICATION_DRAFT</code> to <code>PENDING_OWNER_APPROVAL</code> with transaction ref.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><code>testUpdateStatus_AlreadyCancelled_ThrowsException</code></td>
+        <td><span class="tag-state">Terminal Guard</span></td>
+        <td>Enforces state immutability: rejects status update on already <code>CANCELLED</code> booking.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><code>testCancelBooking_Success</code></td>
+        <td><span class="tag-state">Cancellation</span></td>
+        <td>Cancels booking, records cancellation reason ("Found alternative flat"), and saves entity.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td><code>testSubmitVerification_InvalidIncome</code></td>
+        <td><span class="tag-verify">Verification</span></td>
+        <td>Rejects tenant verification submission when monthly income is zero or negative ("0").</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td><code>testApproveWithContactShare_Success</code></td>
+        <td><span class="tag-verify">Owner Flow</span></td>
+        <td>Owner approves booking; saves contact share DTO and transitions status to <code>CONFIRMED</code>.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td><code>testApproveWithContactShare_Unauthorized</code></td>
+        <td><span class="tag-verify">Security</span></td>
+        <td>Rejects approval when caller user ID (999L) does not match property owner ID (500L).</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- SECTION C: ADDED TESTS -->
+  <h2 class="sec-heading"><span class="sec-number">3</span> Additional Test Cases Added (2 Boundary Tests)</h2>
+  <p>
+    While the existing 11 tests validated typical scenarios, date validation in <code>createBooking()</code> only examined 
+    inverted dates where both <code>startDate</code> and <code>endDate</code> were present non-null objects. In real-world web applications, 
+    incomplete JSON payloads, frontend serialization bugs, or direct API tampering often result in missing or null fields.
+  </p>
+  <p>
+    To verify robust input defense at the service layer, <strong>2 additional unit tests</strong> were authored in <code>BookingServiceTest.java</code>:
+  </p>
+
+  <ol>
+    <li>
+      <strong>Missing Start Date (<code>testCreateBooking_NullStartDate_ThrowsException</code>):</strong>
+      <br>
+      <em>Purpose:</em> Validates service behavior when <code>request.getStartDate() == null</code> while <code>endDate</code> is provided. The service must cleanly reject the booking request, throw a domain-specific <code>InvalidBookingException</code>, and prevent any database interaction.
+    </li>
+    <li>
+      <strong>Missing End Date (<code>testCreateBooking_NullEndDate_ThrowsException</code>):</strong>
+      <br>
+      <em>Purpose:</em> Validates service behavior when <code>request.getEndDate() == null</code> while <code>startDate</code> is provided. The service must catch the missing end date and throw <code>InvalidBookingException</code> instead of crashing during subsequent chronological checks.
+    </li>
+  </ol>
+
+  <!-- SECTION D: INITIAL FAILURE & ROOT CAUSE -->
+  <h2 class="sec-heading"><span class="sec-number">4</span> Initial Test Failures & Root Cause Analysis</h2>
+  <p>
+    When the two newly created tests were first executed against the existing codebase, <strong>both tests failed immediately</strong>.
+  </p>
+
+  <div class="error-card">
+    <div class="card-title">Test Failure Manifestation:</div>
+    <strong>Expected Exception:</strong> <code>com.flatrental.booking.exception.InvalidBookingException</code><br>
+    <strong>Actual Exception Thrown:</strong> <code>java.lang.NullPointerException</code><br>
+    <strong>Failing Tests:</strong> <code>testCreateBooking_NullStartDate_ThrowsException</code> &bull; <code>testCreateBooking_NullEndDate_ThrowsException</code>
+  </div>
+
+  <p><strong>Root Cause Breakdown:</strong></p>
+  <p>
+    Inspection of <code>BookingService.createBooking()</code> revealed that the original code immediately invoked the chronological date comparison without any preceding null checks:
+  </p>
+
+  <div class="code-block">
+<span class="code-comment">// ORIGINAL CODE in BookingService.java (before fix):</span>
+<span class="code-keyword">if</span> (!request.getEndDate().isAfter(request.getStartDate())) {
+    <span class="code-keyword">throw new</span> <span class="code-type">InvalidBookingException</span>(<span class="code-string">"End date must be after start date"</span>);
+}</div>
+
+  <p>
+    This resulted in severe runtime fragility:
+  </p>
+  <ul>
+    <li><strong>Null End Date:</strong> Calling <code>request.getEndDate().isAfter(...)</code> attempted to invoke a method on a <code>null</code> reference, triggering an immediate <code>NullPointerException</code>.</li>
+    <li><strong>Null Start Date:</strong> In the Java Time API, <code>LocalDate.isAfter(ChronoLocalDate other)</code> explicitly checks for null argument and throws <code>NullPointerException</code> if <code>other == null</code>.</li>
+  </ul>
+  <p>
+    Because <code>NullPointerException</code> is an unhandled runtime error, this defect would cause HTTP requests to return an internal server error (<strong>HTTP 500</strong>) with a stack trace instead of a controlled client validation error (<strong>HTTP 400 Bad Request</strong>).
+  </p>
+
+  <!-- ==================== PAGE 3 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- SECTION E: FIX IMPLEMENTATION -->
+  <h2 class="sec-heading"><span class="sec-number">5</span> Production Code Fix & Validation Architecture</h2>
+  <p>
+    To resolve the root cause, defensive null validations were added at the entry of <code>createBooking()</code> in 
+    <code>BookingService.java</code> prior to evaluating the chronological relationship between dates:
+  </p>
+
+  <div class="code-block">
+<span class="code-comment">// RECTIFIED CODE in BookingService.java:</span>
+<span class="code-keyword">public</span> <span class="code-type">BookingResponse</span> <span class="code-keyword">createBooking</span>(<span class="code-type">BookingRequest</span> request, <span class="code-type">Long</span> tenantId) {
+    <span class="code-comment">// 1. Guard against null request object</span>
+    <span class="code-keyword">if</span> (request == <span class="code-keyword">null</span>) {
+        <span class="code-keyword">throw new</span> <span class="code-type">InvalidBookingException</span>(<span class="code-string">"Booking request cannot be null"</span>);
+    }
+
+    <span class="code-comment">// 2. Guard against missing start or end dates</span>
+    <span class="code-keyword">if</span> (request.getStartDate() == <span class="code-keyword">null</span> || request.getEndDate() == <span class="code-keyword">null</span>) {
+        <span class="code-keyword">throw new</span> <span class="code-type">InvalidBookingException</span>(<span class="code-string">"Start date and end date are required"</span>);
+    }
+
+    <span class="code-comment">// 3. Chronological validation (safe from NPE)</span>
+    <span class="code-keyword">if</span> (!request.getEndDate().isAfter(request.getStartDate())) {
+        <span class="code-keyword">throw new</span> <span class="code-type">InvalidBookingException</span>(<span class="code-string">"End date must be after start date"</span>);
+    }
+
+    ...
+}</div>
+
+  <p><strong>Impact of the Fix:</strong></p>
+  <ul>
+    <li>Completely prevents <code>NullPointerException</code> from occurring during booking creation.</li>
+    <li>Consistently throws <code>InvalidBookingException</code> with clear, user-friendly error messages ("Start date and end date are required").</li>
+    <li>Maintains full compatibility with Spring Boot's <code>GlobalExceptionHandler</code>, ensuring clean HTTP 400 Bad Request responses with zero database writes.</li>
+  </ul>
+
+  <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; margin: 10px 0 5px 0;">Evolution of the 2 Newly Added Tests:</h3>
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Test Case</th>
+        <th style="width: 25%;">Initial Failure</th>
+        <th style="width: 35%;">Code Rectification</th>
+        <th style="width: 15%;">Final Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Null Start Date</strong><br><code>testCreateBooking_NullStartDate_ThrowsException</code></td>
+        <td><span class="badge badge-fail">FAILED</span><br><code>NullPointerException</code> at <code>isAfter()</code></td>
+        <td>Added <code>request.getStartDate() == null</code> check throwing <code>InvalidBookingException</code>.</td>
+        <td><span class="badge badge-pass">PASSED</span><br><small style="color:#64748b;">0 DB writes</small></td>
+      </tr>
+      <tr>
+        <td><strong>Null End Date</strong><br><code>testCreateBooking_NullEndDate_ThrowsException</code></td>
+        <td><span class="badge badge-fail">FAILED</span><br><code>NullPointerException</code> at <code>getEndDate()</code></td>
+        <td>Added <code>request.getEndDate() == null</code> check throwing <code>InvalidBookingException</code>.</td>
+        <td><span class="badge badge-pass">PASSED</span><br><small style="color:#64748b;">0 DB writes</small></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION F: TESTING APPROACH -->
+  <h2 class="sec-heading"><span class="sec-number">6</span> Testing Approach & Technical Tooling</h2>
+  <p>
+    The testing implementation strictly leverages modern testing frameworks and Mockito conventions:
+  </p>
+  <ul>
+    <li><strong>JUnit 5 (Jupiter):</strong> Test structure using <code>@Test</code>, descriptive <code>@DisplayName</code>, and isolated test contexts via <code>@ExtendWith(MockitoExtension.class)</code>.</li>
+    <li><strong>Mockito Isolation:</strong> Downstream dependencies (<code>BookingRepository</code>, <code>PropertyClient</code>, <code>MeetupRequestRepository</code>) are fully mocked to test <code>BookingService</code> logic independently of database or network latency.</li>
+    <li><strong><code>assertThrows(InvalidBookingException.class, ...)</code>:</strong> Used to strictly verify that negative scenarios (null dates, invalid date orders, unauthorized approvals, and terminal state edits) throw domain exceptions.</li>
+    <li><strong><code>verify(bookingRepository, never()).save(...)</code>:</strong> Enforces data integrity by verifying that when an invalid input is supplied, no dirty entity or partial record is ever persisted to the repository.</li>
+  </ul>
+
+  <!-- ==================== PAGE 4 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- SECTION G: FINAL TEST EXECUTION -->
+  <h2 class="sec-heading"><span class="sec-number">7</span> Final Test Execution & Verified Results</h2>
+  <p>
+    Following production code fixes, the entire test suite was executed via the Maven command line to verify 100% test passing 
+    and confirm zero regressions across all baseline scenarios:
+  </p>
+
+  <div class="code-block">
+$ mvn test -pl booking-service
+[INFO] Scanning for projects...
+[INFO] -------------------&lt; com.flatrental:booking-service &gt;--------------------
+[INFO] Building booking-service 1.0-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Running com.flatrental.booking.service.BookingServiceTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.150 s -- in com.flatrental.booking.service.BookingServiceTest
+[INFO] 
+[INFO] Results:
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] Total time:  14.392 s
+[INFO] ------------------------------------------------------------------------</div>
+
+  <div class="success-card">
+    <div class="card-title">Verified Execution Summary</div>
+    &bull; <strong>Total Unit Tests in Booking Service:</strong> 13 tests (11 baseline + 2 edge-case additions)<br>
+    &bull; <strong>Passed:</strong> 13 | <strong>Failures:</strong> 0 | <strong>Errors:</strong> 0 | <strong>Skipped:</strong> 0<br>
+    &bull; <strong>Pass Rate:</strong> 100% test success rate<br>
+    &bull; <strong>Execution Time:</strong> 4.150 seconds (BookingServiceTest)
+  </div>
+
+  <div class="screenshot-grid">
+    <div class="screenshot-box">
+      <img src="report_assets/page_8_0_Image57.png" alt="BookingServiceTest IDE Implementation">
+      <div class="caption">Figure 1: BookingServiceTest unit test implementation in IntelliJ IDEA</div>
+    </div>
+    <div class="screenshot-box">
+      <img src="report_assets/page_9_0_Image60.png" alt="Booking Service Test Runner Execution">
+      <div class="caption">Figure 2: Booking Service unit test runner execution results (100% green)</div>
+    </div>
+  </div>
+
+  <!-- SECTION H: CONCLUSION -->
+  <h2 class="sec-heading"><span class="sec-number">8</span> Conclusion</h2>
+  <p>
+    The Booking Service unit-testing exercise successfully reinforced the service layer against boundary anomalies. 
+    By introducing null-date tests, a hidden defect in date processing was exposed and resolved before reaching production.
+  </p>
+  <p>
+    Key outcomes of this testing iteration:
+  </p>
+  <ul>
+    <li>The test suite expanded from <strong>11 to 13 passing unit tests</strong>, achieving a verified <strong>100% pass rate</strong>.</li>
+    <li>Eliminated unhandled <code>NullPointerException</code> failures on malformed date payloads, converting them to structured <code>InvalidBookingException</code> errors.</li>
+    <li>Protected repository state through explicit <code>verify(..., never())</code> assertions.</li>
+    <li>The Booking Service is verified to be robust, secure, and resilient under real-world input conditions.</li>
+  </ul>
+
+</body>
+</html>

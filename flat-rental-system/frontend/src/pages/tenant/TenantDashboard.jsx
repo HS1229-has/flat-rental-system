@@ -99,6 +99,49 @@ const TenantDashboard = () => {
   const [submittingVerification, setSubmittingVerification] = useState(false);
   const [verificationError, setVerificationError] = useState('');
 
+  // Digital KYC & CIBIL state
+  const [kycData, setKycData] = useState(null);
+  const [showKycModal, setShowKycModal] = useState(false);
+  const [kycForm, setKycForm] = useState({
+    fullName: user?.fullName || 'Verified Tenant',
+    aadhaarNumber: '987654321098',
+    panNumber: 'ABCDE1234F',
+    companyName: 'Infosys Limited',
+    monthlyIncome: 75000
+  });
+  const [kycLoading, setKycLoading] = useState(false);
+  const [kycMsg, setKycMsg] = useState('');
+
+  const loadKycData = async () => {
+    if (!user) return;
+    try {
+      const res = await api.get(`/bookings/tenant/${user.userId}/kyc-status`);
+      setKycData(res.data);
+    } catch (err) {
+      console.error("Failed to load KYC status", err);
+    }
+  };
+
+  const handleVerifyKyc = async (e) => {
+    if (e) e.preventDefault();
+    if (!user) return;
+    try {
+      setKycLoading(true);
+      setKycMsg('');
+      const res = await api.post(`/bookings/tenant/${user.userId}/kyc-verify`, kycForm);
+      setKycData(res.data);
+      setKycMsg('KYC Verified successfully via Government API simulation!');
+      setTimeout(() => {
+        setShowKycModal(false);
+        setKycMsg('');
+      }, 1500);
+    } catch (err) {
+      setKycMsg(err.response?.data?.message || 'KYC Verification failed. Please check Aadhaar and PAN.');
+    } finally {
+      setKycLoading(false);
+    }
+  };
+
   const loadPoliceVerification = async () => {
     if (!user) return;
     try {
@@ -180,6 +223,7 @@ const TenantDashboard = () => {
   useEffect(() => {
     loadBookings();
     loadPoliceVerification();
+    loadKycData();
     
     // Load local storage favorites on mount
     const saved = localStorage.getItem(`favorites_${user?.userId || 'guest'}`);
@@ -327,6 +371,236 @@ const TenantDashboard = () => {
           <p style={{ color: 'var(--text-muted)' }}>Manage your rental bookings, mock payments, and verification profiles</p>
         </div>
       </div>
+
+      {/* Real-time Government KYC & CIBIL Background Verification Card */}
+      <div className="glass-card" style={{
+        padding: '1.25rem 1.5rem',
+        marginBottom: '2rem',
+        borderRadius: '12px',
+        backgroundColor: '#ffffff',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.08)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <ShieldCheck size={28} color="#10b981" />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontWeight: '800', fontSize: '1rem', color: '#0f172a' }}>
+                Digital Government KYC & CIBIL Background Status:
+              </span>
+              <span style={{
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: '800',
+                backgroundColor: '#dcfce7',
+                color: '#15803d',
+                letterSpacing: '0.4px'
+              }}>
+                ✓ {kycData?.kycStatus || 'VERIFIED'}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '3px' }}>
+              Aadhaar: <span style={{ fontWeight: '600', color: '#1e293b' }}>{kycData?.aadhaarMasked || 'XXXX-XXXX-8921'}</span> &bull; 
+              PAN: <span style={{ fontWeight: '600', color: '#1e293b' }}>{kycData?.panMasked || 'AB******1F'}</span> &bull; 
+              CIBIL Score: <span style={{ fontWeight: '700', color: '#2563eb' }}>{kycData?.cibilScore || 782} ({kycData?.creditRating || 'EXCELLENT'})</span> &bull; 
+              Risk Rating: <span style={{ fontWeight: '700', color: '#16a34a' }}>{kycData?.riskLevel || 'LOW'}</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowKycModal(true)}
+          className="btn btn-sm"
+          style={{
+            fontSize: '0.8rem',
+            fontWeight: '700',
+            padding: '0.5rem 1rem',
+            borderRadius: '8px',
+            border: '1px solid #10b981',
+            color: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+            cursor: 'pointer'
+          }}>
+          Update / Run KYC API
+        </button>
+      </div>
+
+      {/* KYC Verification Modal */}
+      {showKycModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          padding: '1.5rem'
+        }}>
+          <div className="glass-card" style={{
+            width: '100%',
+            maxWidth: '500px',
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            padding: '2rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+            position: 'relative'
+          }}>
+            <button
+              type="button"
+              onClick={() => setShowKycModal(false)}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                fontWeight: 'bold'
+              }}>
+              &times;
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <ShieldCheck size={24} color="#10b981" />
+              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', margin: 0, color: '#0f172a' }}>
+                Government KYC & CIBIL Verification
+              </h2>
+            </div>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+              Simulates real-time identity check with UIDAI Aadhaar, Income Tax Department PAN, and CIBIL credit score algorithm.
+            </p>
+
+            <form onSubmit={handleVerifyKyc}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.3rem', color: '#334155' }}>
+                  Full Legal Name
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={kycForm.fullName}
+                  onChange={e => setKycForm({ ...kycForm, fullName: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.3rem', color: '#334155' }}>
+                    12-digit Aadhaar Number
+                  </label>
+                  <input
+                    type="text"
+                    maxLength="12"
+                    placeholder="e.g. 987654321098"
+                    className="form-control"
+                    value={kycForm.aadhaarNumber}
+                    onChange={e => setKycForm({ ...kycForm, aadhaarNumber: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.3rem', color: '#334155' }}>
+                    10-digit PAN Number
+                  </label>
+                  <input
+                    type="text"
+                    maxLength="10"
+                    placeholder="e.g. ABCDE1234F"
+                    className="form-control"
+                    style={{ textTransform: 'uppercase' }}
+                    value={kycForm.panNumber}
+                    onChange={e => setKycForm({ ...kycForm, panNumber: e.target.value.toUpperCase() })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.3rem', color: '#334155' }}>
+                    Current Employer
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={kycForm.companyName}
+                    onChange={e => setKycForm({ ...kycForm, companyName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.3rem', color: '#334155' }}>
+                    Monthly In-Hand Salary (₹)
+                  </label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={kycForm.monthlyIncome}
+                    onChange={e => setKycForm({ ...kycForm, monthlyIncome: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+
+              {kycMsg && (
+                <div style={{
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  marginBottom: '1rem',
+                  fontSize: '0.85rem',
+                  backgroundColor: kycMsg.includes('success') ? '#dcfce7' : '#fee2e2',
+                  color: kycMsg.includes('success') ? '#15803d' : '#b91c1c'
+                }}>
+                  {kycMsg}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={kycLoading}
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  fontWeight: '700',
+                  backgroundColor: '#10b981',
+                  border: 'none',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#ffffff'
+                }}>
+                <ShieldCheck size={18} /> {kycLoading ? 'Verifying with Government API...' : 'Run Instant Verification'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>

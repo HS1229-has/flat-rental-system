@@ -3,6 +3,8 @@ package com.flatrental.booking.controller;
 import com.flatrental.booking.dto.BookingRequest;
 import com.flatrental.booking.dto.BookingResponse;
 import com.flatrental.booking.dto.MeetupRequestDto;
+import com.flatrental.booking.dto.TenantKycRequest;
+import com.flatrental.booking.dto.TenantKycResponse;
 import com.flatrental.booking.dto.TenantVerificationDto;
 import com.flatrental.booking.entity.BookingStatus;
 import com.flatrental.booking.service.BookingService;
@@ -151,5 +153,22 @@ public class BookingController {
                                                                                            @RequestHeader("X-User-Id") Long currentUserId) {
         com.flatrental.booking.dto.OwnerContactShareDto response = bookingService.getOwnerContact(bookingId, currentUserId);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Automated Real-Time Tenant KYC & Background Verification API
+     */
+    @PostMapping("/tenant/{tenantId}/kyc-verify")
+    public ResponseEntity<TenantKycResponse> verifyTenantKyc(
+            @PathVariable Long tenantId,
+            @Valid @RequestBody TenantKycRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+        Long effectiveUserId = currentUserId != null ? currentUserId : tenantId;
+        return ResponseEntity.ok(bookingService.verifyTenantKyc(tenantId, request, effectiveUserId));
+    }
+
+    @GetMapping("/tenant/{tenantId}/kyc-status")
+    public ResponseEntity<TenantKycResponse> getTenantKycStatus(@PathVariable Long tenantId) {
+        return ResponseEntity.ok(bookingService.getTenantKycStatus(tenantId));
     }
 }

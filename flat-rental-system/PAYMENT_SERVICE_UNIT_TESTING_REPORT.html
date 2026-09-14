@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Service – Unit Testing Report | LuxeFlats</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 10mm 12mm 10mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11.5px;
+      line-height: 1.4;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+    .header-box {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .top-badge {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    h1.doc-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 3px 0;
+      color: #0f172a;
+      letter-spacing: -0.2px;
+    }
+    .doc-subtitle {
+      font-size: 12px;
+      color: #475569;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .meta-label {
+      color: #64748b;
+      font-weight: 600;
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .meta-value {
+      color: #0f172a;
+      font-weight: 600;
+      margin-top: 1px;
+    }
+    h2.sec-heading {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 12px 0 6px 0;
+      padding-bottom: 3px;
+      border-bottom: 1.5px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sec-number {
+      background: #0f172a;
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    p {
+      margin: 0 0 6px 0;
+      text-align: justify;
+    }
+    ul, ol {
+      margin: 0 0 6px 0;
+      padding-left: 18px;
+    }
+    li {
+      margin-bottom: 3px;
+    }
+    table.report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 10px 0;
+      font-size: 10.5px;
+      page-break-inside: avoid;
+    }
+    table.report-table th {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 5px 6px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 10.5px;
+      border: 1px solid #0f172a;
+    }
+    table.report-table td {
+      padding: 4px 6px;
+      border: 1px solid #cbd5e1;
+      vertical-align: middle;
+    }
+    table.report-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .badge-pass {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .code-block {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10.5px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      margin: 5px 0 8px 0;
+      overflow-x: auto;
+      line-height: 1.35;
+      page-break-inside: avoid;
+    }
+    .code-comment {
+      color: #94a3b8;
+    }
+    .code-keyword {
+      color: #f43f5e;
+    }
+    .code-string {
+      color: #38bdf8;
+    }
+    .code-type {
+      color: #a78bfa;
+    }
+    .info-card {
+      background: #f8fafc;
+      border-left: 3.5px solid #0284c7;
+      border-right: 1px solid #e2e8f0;
+      border-top: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      border-radius: 0 5px 5px 0;
+      padding: 6px 10px;
+      margin: 6px 0 9px 0;
+      font-size: 11px;
+    }
+    .alert-card {
+      background: #fffbeb;
+      border-left: 3.5px solid #d97706;
+      border-right: 1px solid #fef3c7;
+      border-top: 1px solid #fef3c7;
+      border-bottom: 1px solid #fef3c7;
+      border-radius: 0 5px 5px 0;
+      padding: 6px 10px;
+      margin: 6px 0 9px 0;
+      font-size: 11px;
+    }
+    .success-card {
+      background: #f0fdf4;
+      border-left: 3.5px solid #16a34a;
+      border-right: 1px solid #dcfce7;
+      border-top: 1px solid #dcfce7;
+      border-bottom: 1px solid #dcfce7;
+      border-radius: 0 5px 5px 0;
+      padding: 6px 10px;
+      margin: 6px 0 9px 0;
+      font-size: 11px;
+    }
+    .card-title {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+      font-size: 11px;
+    }
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 8px 0;
+      page-break-inside: avoid;
+    }
+    .screenshot-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      padding: 5px;
+      background: #ffffff;
+      text-align: center;
+    }
+    .screenshot-box img {
+      width: 100%;
+      max-height: 140px;
+      object-fit: contain;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+    .caption {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 3px;
+      font-weight: 500;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+    .tag-token {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 600;
+    }
+    .tag-rent {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 600;
+    }
+    .tag-refund {
+      background: #fdf2f8;
+      color: #be185d;
+      border: 1px solid #fbcfe8;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 600;
+    }
+    .stat-pill {
+      display: inline-block;
+      font-weight: 700;
+      color: #0f172a;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid #cbd5e1;
+      font-size: 9.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1 ==================== -->
+  <div class="header-box">
+    <div class="top-badge">Microservices Unit Testing Documentation</div>
+    <h1 class="doc-title">Payment Service – Unit Testing Report</h1>
+    <div class="doc-subtitle">Flat Rental System (LuxeFlats) &bull; Verification, Edge-Case Hardening & Defect Rectification</div>
+    
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">Microservice</span>
+        <span class="meta-value">payment-service (Port 8084)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Target Service</span>
+        <span class="meta-value">MockPaymentService.java</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Test Suite</span>
+        <span class="meta-value">MockPaymentServiceTest.java</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Test Framework</span>
+        <span class="meta-value">JUnit 5 / Mockito / Assertions</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Team Members</span>
+        <span class="meta-value">Harsh Sahu, Kshitij Goel, Tanya Gupta</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Java / Spring</span>
+        <span class="meta-value">Java 21 / Spring Boot 3.x</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Execution Tool</span>
+        <span class="meta-value">Maven Surefire Plugin 3.2.5</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Verified Status</span>
+        <span class="meta-value" style="color: #166534; font-weight: 700;">13 / 13 Passed (100%)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION A: OBJECTIVE -->
+  <h2 class="sec-heading"><span class="sec-number">A</span> Objective</h2>
+  <p>
+    The Payment Service is a core microservice in the LuxeFlats rental platform. It manages the entire monetary transaction 
+    lifecycle for flat rentals: processing initial holding token deposits, monthly rental installments, enforcing idempotent 
+    payment rules, tracking transaction identifiers, and orchestrating tenant refunds.
+  </p>
+  <p>
+    The primary objectives of this unit-testing exercise were:
+  </p>
+  <ul>
+    <li><strong>Validate Core Payment Lifecycle:</strong> Ensure valid token and rent payments succeed, generate a standardized reference (<code>LF-TXN-...</code>), transition to <code>COMPLETED</code>, and persist into the database.</li>
+    <li><strong>Enforce Payment Idempotency:</strong> Confirm that the service prevents duplicate token payments on the same booking while correctly allowing subsequent distinct payment types such as <code>RENT</code>.</li>
+    <li><strong>Verify Refund Orchestration:</strong> Ensure that refunds are only initiated for completed transactions and delegate execution cleanly to the underlying <code>RefundService</code>.</li>
+    <li><strong>Uncover Missing Validation & Authorization:</strong> Actively probe for edge-case vulnerabilities—specifically zero and negative amounts, as well as cross-user refund attempts—that were absent from original code.</li>
+  </ul>
+  <div class="info-card">
+    <div class="card-title">Core Testing Philosophy</div>
+    The purpose of unit testing in this project was not merely to achieve a green test counter or rubber-stamp code, but to actively probe the implementation for missing boundary validations and security gaps before deployment.
+  </div>
+
+  <!-- SECTION B: EXISTING TEST COVERAGE -->
+  <h2 class="sec-heading"><span class="sec-number">B</span> Existing Test Coverage (10 Baseline Tests)</h2>
+  <p>
+    Prior to our edge-case review, the Payment Service test suite contained <strong>10 unit test cases</strong> in <code>MockPaymentServiceTest.java</code>. 
+    These baseline tests verified standard service methods using Mockito mocks for <code>PaymentRepository</code> and <code>RefundService</code>:
+  </p>
+
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th style="width: 5%;">#</th>
+        <th style="width: 33%;">Test Case Method</th>
+        <th style="width: 13%;">Category</th>
+        <th style="width: 39%;">Verification Purpose</th>
+        <th style="width: 10%;">Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>testCreatePayment_TokenSuccess</code></td>
+        <td><span class="tag-token">Token Payment</span></td>
+        <td>Creates a ₹5,000 token payment; asserts status <code>COMPLETED</code>, <code>LF-TXN-</code> prefix, and repository <code>save()</code> invocation.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>testCreatePayment_DuplicateToken_ThrowsException</code></td>
+        <td><span class="tag-token">Idempotency</span></td>
+        <td>Prevents duplicate token payment on identical booking; throws <code>PaymentProcessingException</code> and never saves to database.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>testCreatePayment_RentPaymentAfterToken_Success</code></td>
+        <td><span class="tag-rent">Rent Payment</span></td>
+        <td>Allows ₹25,000 <code>RENT</code> payment even if a <code>TOKEN</code> payment already exists for that booking (differentiates payment types).</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>testGetPaymentById_Success</code></td>
+        <td><span class="stat-pill">Query</span></td>
+        <td>Finds existing payment by primary key ID (1L); validates returned DTO fields and amount.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>testGetPaymentById_NotFound</code></td>
+        <td><span class="stat-pill">Exception</span></td>
+        <td>Queries non-existent payment ID (999L); confirms <code>ResourceNotFoundException</code> is thrown.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>testGetPaymentsByBooking</code></td>
+        <td><span class="stat-pill">Query</span></td>
+        <td>Retrieves payment records filtered by <code>bookingId</code> (100L); validates collection size and booking mapping.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><code>testGetPaymentsByTenant</code></td>
+        <td><span class="stat-pill">Query</span></td>
+        <td>Retrieves payment history for a tenant (200L); confirms proper tenant segregation.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><code>testUpdateStatus_Success</code></td>
+        <td><span class="stat-pill">Lifecycle</span></td>
+        <td>Updates payment state to <code>REFUNDED</code>; verifies status change and persistence.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td><code>testInitiateRefund_Success</code></td>
+        <td><span class="tag-refund">Refund Flow</span></td>
+        <td>Initiates refund for completed payment; confirms status changes to <code>REFUNDED</code> and calls <code>refundService.processRefund()</code>.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td><code>testInitiateRefund_PendingPayment_ThrowsException</code></td>
+        <td><span class="tag-refund">Refund Guard</span></td>
+        <td>Rejects refund when payment is still <code>PENDING</code>; throws <code>PaymentProcessingException</code> and prevents refund processing.</td>
+        <td><span class="badge badge-pass">PASSED</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- SECTION C: ADDITIONAL TEST CASES ADDED -->
+  <h2 class="sec-heading"><span class="sec-number">C</span> Additional Test Cases Added (3 Edge-Case Tests)</h2>
+  <p>
+    During code inspection and testing, we recognized that while the baseline suite covered typical happy-path executions, 
+    it lacked tests for monetary boundary values and authorization boundaries. In financial microservices, accepting zero or 
+    negative numbers or failing to verify caller identity creates severe accounting and security risks.
+  </p>
+  <p>
+    To guarantee system robustness, <strong>3 additional unit tests</strong> were added to <code>MockPaymentServiceTest.java</code>:
+  </p>
+
+  <ol>
+    <li>
+      <strong>Zero Payment Amount (<code>testCreatePayment_ZeroAmount_ThrowsException</code>):</strong>
+      <br>
+      <em>Why added:</em> In real rental workflows, a user submitting a payment request with <code>BigDecimal.ZERO</code> must be rejected immediately. Creating zero-value transaction records clutters ledgers and allows bookings to mark deposits as paid without actual funds.
+    </li>
+    <li>
+      <strong>Negative Payment Amount (<code>testCreatePayment_NegativeAmount_ThrowsException</code>):</strong>
+      <br>
+      <em>Why added:</em> Negative payment amounts (e.g. <code>-5000.00</code>) are classic input manipulation attacks. If unprocessed, they can reverse balance calculations, bypass invoice totals, or corrupt downstream accounting.
+    </li>
+    <li>
+      <strong>Cross-User Refund Authorization (<code>testInitiateRefund_WrongUser_ThrowsException</code>):</strong>
+      <br>
+      <em>Why added:</em> The refund method receives a <code>currentUserId</code>. If this parameter is not checked against the payment's associated <code>tenantId</code>, any tenant or malicious user knowing a payment ID could trigger a refund on another user's behalf.
+    </li>
+  </ol>
+
+  <!-- SECTION D: ISSUES FOUND DURING TESTING -->
+  <h2 class="sec-heading"><span class="sec-number">D</span> Issues Found During Testing & Analysis</h2>
+  <p>
+    Executing the newly added test cases exposed two critical business logic defects in the original implementation of 
+    <code>MockPaymentService.java</code>:
+  </p>
+
+  <div class="alert-card">
+    <div class="card-title">Defect 1: Missing Amount Boundary Validation in <code>createPayment()</code></div>
+    The initial implementation of <code>createPayment()</code> did not check <code>request.getAmount()</code>. Payments with zero (₹0.00) or negative (₹-5,000.00) amounts were accepted, assigned transaction reference numbers, marked as <code>COMPLETED</code>, and saved to the database.
+  </div>
+
+  <div class="alert-card">
+    <div class="card-title">Defect 2: Missing Authorization Ownership Check in <code>initiateRefund()</code></div>
+    The <code>initiateRefund(Long paymentId, Long currentUserId)</code> method accepted <code>currentUserId</code> but never compared it against <code>payment.getTenantId()</code>. Any user could initiate a refund for another tenant's payment as long as the payment ID was valid.
+  </div>
+
+  <div class="info-card">
+    <div class="card-title">Test Construction Detail: Mockito Unnecessary Stubbing (Strict Mode)</div>
+    During initial test drafting for zero and negative amounts, the test method copied an unused stub:
+    <div style="font-family: Consolas, monospace; font-size: 10.5px; margin: 3px 0;">
+      <code>when(paymentRepository.findByBookingId(100L)).thenReturn(List.of());</code>
+    </div>
+    Because our newly implemented validation logic correctly rejects zero/negative amounts at the very entrance of <code>createPayment()</code>, the execution never reached <code>findByBookingId()</code>. Mockito's strict runner (<code>@ExtendWith(MockitoExtension.class)</code>) flagged this unused stub as an <code>UnnecessaryStubbingException</code>.
+    <br><br>
+    <em>Clarification:</em> This was an internal test-suite stubbing refinement rather than an application bug. Removing the unnecessary repository stub from the test correctly asserted that boundary validation short-circuits execution before any database lookup.
+  </div>
+
+  <!-- ==================== PAGE 3 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- SECTION E: CODE FIXES & EXCEPTION HANDLING -->
+  <h2 class="sec-heading"><span class="sec-number">E</span> Code Fixes & Exception Handling</h2>
+  <p>
+    To resolve the discovered issues, targeted checks were implemented in 
+    <code>MockPaymentService.java</code> using consistent domain exceptions:
+  </p>
+
+  <p><strong>1. Added Amount Boundary Validation in <code>createPayment()</code>:</strong></p>
+  <div class="code-block">
+<span class="code-keyword">public</span> <span class="code-type">PaymentResponse</span> <span class="code-keyword">createPayment</span>(<span class="code-type">PaymentRequest</span> request, <span class="code-type">Long</span> tenantId) {
+    <span class="code-comment">// Added validation: reject null, zero, and negative amounts before DB lookup</span>
+    <span class="code-keyword">if</span> (request.getAmount() == <span class="code-keyword">null</span> || request.getAmount().compareTo(<span class="code-type">BigDecimal</span>.ZERO) &lt;= 0) {
+        <span class="code-keyword">throw new</span> <span class="code-type">PaymentProcessingException</span>(<span class="code-string">"Payment amount must be greater than zero."</span>);
+    }
+    ...
+}</div>
+
+  <p><strong>2. Added Tenant Authorization Ownership Check in <code>initiateRefund()</code>:</strong></p>
+  <div class="code-block">
+<span class="code-keyword">public</span> <span class="code-type">RefundResponse</span> <span class="code-keyword">initiateRefund</span>(<span class="code-type">Long</span> paymentId, <span class="code-type">Long</span> currentUserId) {
+    <span class="code-type">Payment</span> payment = paymentRepository.findById(paymentId)
+            .orElseThrow(() -&gt; <span class="code-keyword">new</span> <span class="code-type">ResourceNotFoundException</span>(<span class="code-string">"Payment not found with id: "</span> + paymentId));
+
+    <span class="code-comment">// Added security check: caller must match the payment's associated tenant</span>
+    <span class="code-keyword">if</span> (!payment.getTenantId().equals(currentUserId)) {
+        <span class="code-keyword">throw new</span> <span class="code-type">PaymentProcessingException</span>(<span class="code-string">"You are not authorized to refund this payment."</span>);
+    }
+    ...
+}</div>
+
+  <!-- SUMMARY TABLE FOR ADDED TESTS -->
+  <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; margin: 10px 0 5px 0;">Evolution of the 3 Additional Test Cases:</h3>
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th style="width: 26%;">Test Case</th>
+        <th style="width: 25%;">Initial Observation</th>
+        <th style="width: 34%;">Fix Implemented</th>
+        <th style="width: 15%;">Final Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Zero Amount</strong><br><code>testCreatePayment_ZeroAmount_ThrowsException</code></td>
+        <td>Zero amount accepted; created a completed ₹0 payment record.</td>
+        <td>Added <code>compareTo(BigDecimal.ZERO) &lt;= 0</code> guard throwing <code>PaymentProcessingException</code>. Removed unused test stubbing.</td>
+        <td><span class="badge badge-pass">PASSED</span><br><small style="color:#64748b;">0 DB writes</small></td>
+      </tr>
+      <tr>
+        <td><strong>Negative Amount</strong><br><code>testCreatePayment_NegativeAmount_ThrowsException</code></td>
+        <td>Negative amount (₹-5,000) accepted without error; persisted invalid record.</td>
+        <td>Validated before repository query; rejected with <code>PaymentProcessingException</code>. Cleaned test stubbing.</td>
+        <td><span class="badge badge-pass">PASSED</span><br><small style="color:#64748b;">0 DB writes</small></td>
+      </tr>
+      <tr>
+        <td><strong>Unauthorized Refund</strong><br><code>testInitiateRefund_WrongUser_ThrowsException</code></td>
+        <td>User 999L was permitted to initiate refund for tenant 200L's payment.</td>
+        <td>Added tenant comparison: <code>!payment.getTenantId().equals(currentUserId)</code> throwing <code>PaymentProcessingException</code>.</td>
+        <td><span class="badge badge-pass">PASSED</span><br><small style="color:#64748b;">Refund aborted</small></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ==================== PAGE 4 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- SECTION F: FINAL TEST EXECUTION -->
+  <h2 class="sec-heading"><span class="sec-number">F</span> Final Test Execution & Verified Results</h2>
+  <p>
+    Following code corrections, the full suite was executed via the Maven command line to verify isolation, 
+    assertion consistency, and zero regressions:
+  </p>
+
+  <div class="code-block">
+$ mvn test -pl payment-service
+[INFO] Scanning for projects...
+[INFO] -------------------&lt; com.flatrental:payment-service &gt;--------------------
+[INFO] Building payment-service 1.0-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Running com.flatrental.payment.service.MockPaymentServiceTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.309 s -- in com.flatrental.payment.service.MockPaymentServiceTest
+[INFO] 
+[INFO] Results:
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] Total time:  28.713 s
+[INFO] ------------------------------------------------------------------------</div>
+
+  <div class="success-card">
+    <div class="card-title">Verified Execution Summary</div>
+    &bull; <strong>Total Unit Tests in Payment Service:</strong> 13 tests (10 baseline + 3 edge-case additions)<br>
+    &bull; <strong>Passed:</strong> 13 | <strong>Failures:</strong> 0 | <strong>Errors:</strong> 0 | <strong>Skipped:</strong> 0<br>
+    &bull; <strong>Pass Rate:</strong> 100% test success rate<br>
+    &bull; <strong>Execution Time:</strong> 3.309 seconds (MockPaymentServiceTest)
+  </div>
+
+  <div class="screenshot-grid">
+    <div class="screenshot-box">
+      <img src="report_assets/page_11_0_Image66.png" alt="MockPaymentServiceTest IDE Implementation">
+      <div class="caption">Figure 1: MockPaymentServiceTest implementation in IntelliJ IDEA</div>
+    </div>
+    <div class="screenshot-box">
+      <img src="report_assets/page_11_1_Image67.png" alt="Payment Service Test Runner Execution">
+      <div class="caption">Figure 2: Payment Service unit test runner execution results (100% green)</div>
+    </div>
+  </div>
+
+  <!-- SECTION G: CONCLUSION -->
+  <h2 class="sec-heading"><span class="sec-number">G</span> Conclusion</h2>
+  <p>
+    The Payment Service unit-testing exercise succeeded in both validating baseline functionalities and uncovering 
+    critical real-world edge cases that were overlooked during initial feature coding.
+  </p>
+  <p>
+    Through systematic testing:
+  </p>
+  <ul>
+    <li>The test suite grew from <strong>10 to 13 robust unit tests</strong>, achieving a verified <strong>100% pass rate</strong>.</li>
+    <li>Input boundary vulnerabilities for zero and negative amounts were caught and resolved with early-exit validation, protecting financial consistency.</li>
+    <li>A major cross-user refund authorization loophole was closed by enforcing caller-to-tenant verification.</li>
+    <li>Tests were refined to adhere to strict Mockito best practices, eliminating brittle stubbing while accurately reflecting business execution flow.</li>
+  </ul>
+  <p>
+    The Payment Service is now significantly more resilient, secure, and ready for production deployment within the LuxeFlats platform.
+  </p>
+
+</body>
+</html>

@@ -2,6 +2,8 @@ package com.flatrental.property.service;
 
 import com.flatrental.property.dto.PropertyRequest;
 import com.flatrental.property.dto.PropertyResponse;
+import com.flatrental.property.dto.RentEstimationRequest;
+import com.flatrental.property.dto.RentEstimationResponse;
 import com.flatrental.property.entity.Property;
 import com.flatrental.property.entity.PropertyType;
 import com.flatrental.property.exception.ResourceNotFoundException;
@@ -190,4 +192,143 @@ class PropertyServiceTest {
         assertThrows(UnauthorizedActionException.class, () -> propertyService.deleteProperty(1L, 888L));
         verify(propertyRepository, never()).delete(any(Property.class));
     }
+    @Test
+    @DisplayName("Should return image URLs when property exists")
+    void testGetPropertyImageUrls_Success() {
+        sampleProperty.setImageUrls("image1.jpg|image2.jpg");
+
+        when(propertyRepository.findById(1L))
+                .thenReturn(Optional.of(sampleProperty));
+
+        String result = propertyService.getPropertyImageUrls(1L);
+
+        assertNotNull(result);
+        assertEquals("image1.jpg|image2.jpg", result);
+
+        verify(propertyRepository, times(1)).findById(1L);
+    }
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when image property not found")
+    void testGetPropertyImageUrls_NotFound() {
+        when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> propertyService.getPropertyImageUrls(999L)
+        );
+
+        verify(propertyRepository, times(1)).findById(999L);
+    }
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when updating non-existent property")
+    void testUpdateProperty_NotFound() {
+        PropertyRequest updateReq = new PropertyRequest();
+        updateReq.setTitle("Updated Title");
+
+        when(propertyRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> propertyService.updateProperty(999L, updateReq, 10L)
+        );
+
+        verify(propertyRepository, never()).save(any(Property.class));
+    }
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when deleting non-existent property")
+    void testDeleteProperty_NotFound() {
+        when(propertyRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> propertyService.deleteProperty(999L, 10L)
+        );
+
+        verify(propertyRepository, never()).delete(any(Property.class));
+    }
+    @Test
+    @DisplayName("Should assign correct owner ID when creating property")
+    void testCreateProperty_AssignsOwner() {
+        PropertyRequest request = new PropertyRequest();
+        request.setTitle("Test Property");
+        request.setCity("Noida");
+        request.setRentAmount(new BigDecimal("20000"));
+        request.setPropertyType(PropertyType.TWO_BHK);
+
+        when(propertyRepository.save(any(Property.class)))
+                .thenAnswer(invocation -> {
+                    Property property = invocation.getArgument(0);
+                    property.setId(20L);
+                    return property;
+                });
+
+        PropertyResponse response = propertyService.createProperty(request, 50L);
+
+        assertNotNull(response);
+        assertEquals(50L, response.getOwnerId());
+
+        verify(propertyRepository, times(1)).save(any(Property.class));
+    }
+    @Test
+    @DisplayName("Should resolve existing image when updating property with image URL reference")
+    void testUpdateProperty_ResolvesExistingImage() {
+        sampleProperty.setImageUrls("BASE64_IMAGE_1|BASE64_IMAGE_2");
+
+        PropertyRequest updateReq = new PropertyRequest();
+        updateReq.setTitle("Updated Title");
+        updateReq.setDescription("Updated Desc");
+        updateReq.setAddress("Sector 63");
+        updateReq.setCity("Noida");
+        updateReq.setRentAmount(new BigDecimal("30000"));
+        updateReq.setPropertyType(PropertyType.TWO_BHK);
+        updateReq.setBedrooms(2);
+        updateReq.setBathrooms(2);
+        updateReq.setImageUrls("/api/properties/1/image?index=1");
+
+        when(propertyRepository.findById(1L))
+                .thenReturn(Optional.of(sampleProperty));
+
+        when(propertyRepository.save(any(Property.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        PropertyResponse response =
+                propertyService.updateProperty(1L, updateReq, 10L);
+
+        assertNotNull(response);
+        assertEquals("BASE64_IMAGE_2", response.getImageUrls());
+
+        verify(propertyRepository, times(1)).save(any(Property.class));
+    }
+
+    @Test
+    @DisplayName("Should accurately estimate market rent for Bangalore 2BHK furnished flat")
+    void testEstimateRent_Bangalore_Success() {
+        RentEstimationRequest request = new RentEstimationRequest();
+        request.setCity("Bangalore");
+        request.setLocality("Indiranagar");
+        request.setArea(1000);
+        request.setBedrooms(2);
+        request.setFurnishing("Furnished");
+        request.setHasParking(true);
+        request.setHasGym(true);
+
+        RentEstimationResponse response = propertyService.estimateRent(request);
+
+        assertNotNull(response);
+        assertTrue(response.getEstimatedRent().compareTo(BigDecimal.ZERO) > 0);
+        assertTrue(response.getConfidenceScore() >= 90);
+        assertNotNull(response.getSummary());
+        assertTrue(response.getSummary().contains("Bangalore"));
+        assertTrue(response.getMinRent().compareTo(response.getEstimatedRent()) < 0);
+        assertTrue(response.getMaxRent().compareTo(response.getEstimatedRent()) > 0);
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when rent estimation request is null")
+    void testEstimateRent_NullRequest_ThrowsException() {
+        assertThrows(IllegalArgumentException.class, () -> propertyService.estimateRent(null));
+    }
+
 }

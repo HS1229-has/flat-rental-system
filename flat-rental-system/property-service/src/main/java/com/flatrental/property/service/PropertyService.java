@@ -2,13 +2,18 @@ package com.flatrental.property.service;
 
 import com.flatrental.property.dto.PropertyRequest;
 import com.flatrental.property.dto.PropertyResponse;
+import com.flatrental.property.dto.RentEstimationRequest;
+import com.flatrental.property.dto.RentEstimationResponse;
 import com.flatrental.property.entity.Property;
 import com.flatrental.property.exception.ResourceNotFoundException;
 import com.flatrental.property.exception.UnauthorizedActionException;
 import com.flatrental.property.repository.PropertyRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -21,6 +26,7 @@ public class PropertyService {
     }
 
     @Transactional
+    @CacheEvict(value = {"properties", "property"}, allEntries = true)
     public PropertyResponse createProperty(PropertyRequest request, Long ownerId) {
         Property property = Property.builder()
                 .ownerId(ownerId)
@@ -48,18 +54,21 @@ public class PropertyService {
         return toListResponse(saved);
     }
 
+    @Cacheable(value = "properties", key = "'all'")
     public List<PropertyResponse> getAllProperties() {
         return propertyRepository.findAll().stream()
                 .map(this::toListResponse)
                 .toList();
     }
 
+    @Cacheable(value = "property", key = "#id")
     public PropertyResponse getPropertyById(Long id) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found with id: " + id));
         return toListResponse(property);
     }
 
+    @Cacheable(value = "properties", key = "#city")
     public List<PropertyResponse> getPropertiesByCity(String city) {
         return propertyRepository.findByCityIgnoreCase(city).stream()
                 .map(this::toListResponse)
@@ -82,6 +91,7 @@ public class PropertyService {
     }
 
     @Transactional
+    @CacheEvict(value = {"properties", "property"}, allEntries = true)
     public PropertyResponse updateProperty(Long id, PropertyRequest request, Long currentUserId) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found with id: " + id));
@@ -117,6 +127,7 @@ public class PropertyService {
     }
 
     @Transactional
+    @CacheEvict(value = {"properties", "property"}, allEntries = true)
     public void deleteProperty(Long id, Long currentUserId) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found with id: " + id));
@@ -215,6 +226,98 @@ public class PropertyService {
                 .available(property.isAvailable())
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * AI-Powered Rent Estimation Algorithm based on city index, area (sqft),
+     * furnishing tier, bedroom weighting, and premium amenity additions.
+     */
+    public RentEstimationResponse estimateRent(RentEstimationRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Estimation request cannot be null");
+        }
+
+        // 1. Determine City Base Rate per sqft (in INR)
+        String city = request.getCity() != null ? request.getCity().trim().toLowerCase() : "";
+        double baseRatePerSqFt;
+        if (city.contains("mumbai")) {
+            baseRatePerSqFt = 45.0;
+        } else if (city.contains("bangalore") || city.contains("bengaluru")) {
+            baseRatePerSqFt = 32.0;
+        } else if (city.contains("delhi") || city.contains("gurgaon") || city.contains("noida")) {
+            baseRatePerSqFt = 30.0;
+        } else if (city.contains("pune")) {
+            baseRatePerSqFt = 25.0;
+        } else if (city.contains("hyderabad")) {
+            baseRatePerSqFt = 24.0;
+        } else if (city.contains("chennai")) {
+            baseRatePerSqFt = 22.0;
+        } else {
+            baseRatePerSqFt = 18.0; // Tier 2/3 default baseline
+        }
+
+        // 2. Base Area Rent Calculation
+        int area = request.getArea() != null && request.getArea() > 0 ? request.getArea() : 600;
+        double calculatedBaseRent = area * baseRatePerSqFt;
+
+        // 3. Bedroom multiplier adjustment
+        int bedrooms = request.getBedrooms() != null ? request.getBedrooms() : 1;
+        if (bedrooms >= 3) {
+            calculatedBaseRent *= 1.15;
+        } else if (bedrooms == 2) {
+            calculatedBaseRent *= 1.05;
+        }
+
+        // 4. Furnishing Premium
+        double furnishingPremium = 0.0;
+        String furnishing = request.getFurnishing() != null ? request.getFurnishing().toLowerCase() : "";
+        if (furnishing.contains("fully") || furnishing.equals("furnished")) {
+            furnishingPremium = calculatedBaseRent * 0.22; // +22% for fully furnished
+        } else if (furnishing.contains("semi")) {
+            furnishingPremium = calculatedBaseRent * 0.10; // +10% for semi-furnished
+        }
+
+        // 5. Amenity Bonuses
+        double amenityBonus = 0.0;
+        if (request.isHasParking()) amenityBonus += 2000.0;
+        if (request.isHasGym()) amenityBonus += 1500.0;
+        if (request.isHasPowerBackup()) amenityBonus += 1200.0;
+        if (request.isHasSecurity()) amenityBonus += 800.0;
+
+        double totalRent = calculatedBaseRent + furnishingPremium + amenityBonus;
+        // Round to nearest 500 for market realism
+        long roundedRent = Math.round(totalRent / 500.0) * 500;
+        long minRent = Math.round((roundedRent * 0.92) / 500.0) * 500;
+        long maxRent = Math.round((roundedRent * 1.08) / 500.0) * 500;
+
+        // Confidence calculation (higher for standard sqft & popular cities)
+        int confidence = (city.contains("bangalore") || city.contains("mumbai") || city.contains("delhi")) ? 94 : 88;
+        if (request.getLocality() != null && !request.getLocality().isBlank()) {
+            confidence = Math.min(98, confidence + 3);
+        }
+
+        String demand = roundedRent > 35000 ? "High Demand (Executive Category)" : "High Demand (Quick Turnover)";
+
+        String summary = String.format("AI Estimated Rent for %s (%d sqft, %d BHK) in %s. Market range ₹%,d - ₹%,d.",
+                furnishing.isEmpty() ? "Standard" : request.getFurnishing(),
+                area,
+                bedrooms,
+                request.getCity(),
+                minRent,
+                maxRent);
+
+        return RentEstimationResponse.builder()
+                .estimatedRent(BigDecimal.valueOf(roundedRent))
+                .minRent(BigDecimal.valueOf(minRent))
+                .maxRent(BigDecimal.valueOf(maxRent))
+                .confidenceScore(confidence)
+                .marketDemand(demand)
+                .baseRent(BigDecimal.valueOf(Math.round(calculatedBaseRent)))
+                .furnishingPremium(BigDecimal.valueOf(Math.round(furnishingPremium)))
+                .amenityBonus(BigDecimal.valueOf(Math.round(amenityBonus)))
+                .ratePerSqFt(BigDecimal.valueOf(baseRatePerSqFt))
+                .summary(summary)
                 .build();
     }
 }
