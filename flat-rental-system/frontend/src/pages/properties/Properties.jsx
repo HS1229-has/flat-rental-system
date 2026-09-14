@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api, { splitImageUrls } from '../../api/axiosConfig';
-import { Search, MapPin, Bed, Bath, IndianRupee, Home, X, Building2, SlidersHorizontal } from 'lucide-react';
+import { Search, MapPin, Bed, Bath, IndianRupee, Home, X, Building2, SlidersHorizontal, Sparkles, Map as MapIcon, Grid, Compass, CheckCircle } from 'lucide-react';
 import { loadGoogleMapsScript } from '../../utils/googleMaps';
+import { loadLeafletScript, CITY_COORDINATES } from '../../utils/leafletMap';
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80';
 
@@ -24,6 +25,37 @@ const Properties = () => {
   });
 
   const [locationStatus, setLocationStatus] = useState('');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
+  const [showEstimator, setShowEstimator] = useState(false);
+  const [estimating, setEstimating] = useState(false);
+  const [estimatorForm, setEstimatorForm] = useState({
+    city: 'Bangalore',
+    locality: 'Indiranagar',
+    bedrooms: 2,
+    bathrooms: 2,
+    area: 950,
+    furnishing: 'Furnished',
+    hasParking: true,
+    hasGym: true,
+    hasPowerBackup: true,
+    hasSecurity: true
+  });
+  const [estimatorResult, setEstimatorResult] = useState(null);
+  const mapInstanceRef = useRef(null);
+  const markersRef = useRef([]);
+
+  const handleEstimateRent = async (e) => {
+    if (e) e.preventDefault();
+    try {
+      setEstimating(true);
+      const res = await api.post('/properties/estimate-rent', estimatorForm);
+      setEstimatorResult(res.data);
+    } catch (err) {
+      console.error("Rent estimation error:", err);
+    } finally {
+      setEstimating(false);
+    }
+  };
   const autocompleteInputRef = useRef(null);
   const autocompleteRef = useRef(null);
 
@@ -228,6 +260,108 @@ const Properties = () => {
     setFiltered(result);
   }, [properties, filters]);
 
+  // Leaflet Interactive Map Lifecycle
+  useEffect(() => {
+    if (viewMode !== 'map') return;
+
+    let isMounted = true;
+    loadLeafletScript().then(L => {
+      if (!isMounted) return;
+
+      const container = document.getElementById('leaflet-map-container');
+      if (!container) return;
+
+      // Determine center based on current city filter or first property
+      let center = CITY_COORDINATES.bangalore;
+      if (filters.city) {
+        const cityKey = filters.city.trim().toLowerCase();
+        if (CITY_COORDINATES[cityKey]) {
+          center = CITY_COORDINATES[cityKey];
+        }
+      } else if (filtered.length > 0 && filtered[0].latitude && filtered[0].longitude) {
+        center = [filtered[0].latitude, filtered[0].longitude];
+      }
+
+      if (!mapInstanceRef.current) {
+        const map = L.map('leaflet-map-container', {
+          center: center,
+          zoom: 12,
+          scrollWheelZoom: true
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 19
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
+      } else {
+        mapInstanceRef.current.setView(center, 12);
+        mapInstanceRef.current.invalidateSize();
+      }
+
+      // Clear existing markers
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
+
+      // Add markers for filtered properties
+      filtered.forEach((p, idx) => {
+        let lat = p.latitude;
+        let lng = p.longitude;
+        if (!lat || !lng) {
+          const cityKey = (p.city || 'bangalore').toLowerCase();
+          const baseCoords = CITY_COORDINATES[cityKey] || CITY_COORDINATES.bangalore;
+          const angle = (idx * 0.9) % (2 * Math.PI);
+          const radius = 0.015 + ((idx % 5) * 0.006);
+          lat = baseCoords[0] + radius * Math.cos(angle);
+          lng = baseCoords[1] + radius * Math.sin(angle);
+        }
+
+        const priceText = '₹' + Number(p.rentAmount).toLocaleString('en-IN');
+        const customIcon = L.divIcon({
+          className: 'custom-property-pin',
+          html: `<div style="
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            border: 2px solid #ffffff;
+            white-space: nowrap;
+            cursor: pointer;
+            transform: translate(-50%, -100%);
+          ">${priceText}</div>`,
+          iconSize: [60, 30],
+          iconAnchor: [30, 30]
+        });
+
+        const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstanceRef.current);
+
+        const popupContent = `
+          <div style="font-family: inherit; width: 220px; color: #0f172a; padding: 4px;">
+            <img src="${getFirstImage(p)}" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-bottom:6px;" />
+            <div style="font-weight:700; font-size:13px; margin-bottom:2px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${p.title}</div>
+            <div style="font-size:11px; color:#64748b; margin-bottom:6px;">📍 ${p.locality ? p.locality + ', ' : ''}${p.city} &bull; ${p.bedrooms || 1} BHK</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:800; color:#4f46e5; font-size:13px;">${priceText}<span style="font-size:9px; font-weight:400; color:#64748b;">/mo</span></span>
+              <a href="/properties/${p.id}" style="background:#4f46e5; color:#ffffff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; text-decoration:none;">View Details</a>
+            </div>
+          </div>
+        `;
+        marker.bindPopup(popupContent);
+        markersRef.current.push(marker);
+      });
+    }).catch(err => {
+      console.warn("Leaflet map load warning:", err);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [viewMode, filtered, filters.city]);
+
   const clearFilters = () => setFilters({ city: '', type: '', maxPrice: '', furnishing: '', bedrooms: '', sort: 'newest' });
   const hasFilters = filters.city || filters.type || filters.maxPrice || filters.furnishing || filters.bedrooms;
 
@@ -274,14 +408,77 @@ const Properties = () => {
             {filtered.length} propert{filtered.length === 1 ? 'y' : 'ies'} found
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* AI Rent Estimator Trigger */}
+          <button 
+            type="button"
+            className="btn btn-sm"
+            onClick={() => setShowEstimator(true)}
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.9rem',
+              borderRadius: '8px',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+              cursor: 'pointer'
+            }}>
+            <Sparkles size={15} /> AI Rent Estimator
+          </button>
+
+          {/* View Mode Switcher */}
+          <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '8px', padding: '3px', border: '1px solid var(--border-color)' }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              style={{
+                background: viewMode === 'grid' ? 'var(--primary)' : 'transparent',
+                color: viewMode === 'grid' ? '#ffffff' : 'var(--text-muted)',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '0.35rem 0.7rem',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                transition: 'all 0.2s ease'
+              }}>
+              <Grid size={14} /> Grid
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('map')}
+              style={{
+                background: viewMode === 'map' ? 'var(--primary)' : 'transparent',
+                color: viewMode === 'map' ? '#ffffff' : 'var(--text-muted)',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '0.35rem 0.7rem',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                transition: 'all 0.2s ease'
+              }}>
+              <MapIcon size={14} /> Map View
+            </button>
+          </div>
+
           <button className="btn btn-secondary btn-sm" onClick={() => setShowFilters(!showFilters)}
             style={{ display: 'none' }} id="mobile-filter-btn">
             <SlidersHorizontal size={16} /> Filters
           </button>
           <select className="form-select" value={filters.sort}
             onChange={e => setFilters({...filters, sort: e.target.value})}
-            style={{ width: 'auto', minWidth: '160px' }}>
+            style={{ width: 'auto', minWidth: '150px' }}>
             <option value="newest">Newest First</option>
             <option value="price-asc">Price: Low → High</option>
             <option value="price-desc">Price: High → Low</option>
@@ -429,11 +626,23 @@ const Properties = () => {
           </div>
         </div>
 
-        {/* Property Grid */}
+        {/* Property Grid or Map View */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {error && <div className="alert alert-danger">{error}</div>}
 
-          {filtered.length === 0 && !loading ? (
+          {viewMode === 'map' ? (
+            <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.05rem', color: 'var(--text-main)' }}>
+                  <Compass size={18} color="var(--primary)" /> Interactive Map Explorer ({filtered.length} properties plotted)
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Click any interactive price tag to view photos & rental details
+                </div>
+              </div>
+              <div id="leaflet-map-container" style={{ height: '580px', width: '100%', borderRadius: '10px', zIndex: 1 }}></div>
+            </div>
+          ) : filtered.length === 0 && !loading ? (
             <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
               <Home size={64} color="var(--text-muted)" style={{ marginBottom: '1.5rem', opacity: 0.4 }} />
               <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>No properties found</h3>
@@ -530,6 +739,273 @@ const Properties = () => {
           )}
         </div>
       </div>
+
+      {/* AI Rent Estimator Modal */}
+      {showEstimator && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          padding: '1.5rem'
+        }}>
+          <div className="glass-card" style={{
+            width: '100%',
+            maxWidth: '560px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            borderRadius: '16px',
+            padding: '2rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            position: 'relative'
+          }}>
+            <button
+              type="button"
+              onClick={() => setShowEstimator(false)}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '4px'
+              }}>
+              <X size={20} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+              <div style={{ padding: '8px', background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={20} color="#ffffff" />
+              </div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: '800', margin: 0 }}>AI Rent Estimator</h2>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+              Instant valuation algorithm based on city price index, square-footage, furnishing tier, and premium society amenities.
+            </p>
+
+            <form onSubmit={handleEstimateRent}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '600' }}>City</label>
+                  <select
+                    className="form-select"
+                    value={estimatorForm.city}
+                    onChange={e => setEstimatorForm({ ...estimatorForm, city: e.target.value })}>
+                    <option value="Bangalore">Bangalore</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Delhi">Delhi / NCR</option>
+                    <option value="Noida">Noida</option>
+                    <option value="Gurgaon">Gurgaon</option>
+                    <option value="Pune">Pune</option>
+                    <option value="Hyderabad">Hyderabad</option>
+                    <option value="Chennai">Chennai</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '600' }}>Locality / Area Name</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. Indiranagar, Whitefield"
+                    value={estimatorForm.locality}
+                    onChange={e => setEstimatorForm({ ...estimatorForm, locality: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '600' }}>Bedrooms</label>
+                  <select
+                    className="form-select"
+                    value={estimatorForm.bedrooms}
+                    onChange={e => setEstimatorForm({ ...estimatorForm, bedrooms: parseInt(e.target.value) })}>
+                    <option value="1">1 BHK</option>
+                    <option value="2">2 BHK</option>
+                    <option value="3">3 BHK</option>
+                    <option value="4">4+ BHK</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '600' }}>Area (Sq. Ft.)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    min="100"
+                    max="10000"
+                    value={estimatorForm.area}
+                    onChange={e => setEstimatorForm({ ...estimatorForm, area: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '600' }}>Furnishing</label>
+                  <select
+                    className="form-select"
+                    value={estimatorForm.furnishing}
+                    onChange={e => setEstimatorForm({ ...estimatorForm, furnishing: e.target.value })}>
+                    <option value="Furnished">Fully Furnished</option>
+                    <option value="Semi-Furnished">Semi-Furnished</option>
+                    <option value="Unfurnished">Unfurnished</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
+                  Society Amenities
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', fontSize: '0.825rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={estimatorForm.hasParking}
+                      onChange={e => setEstimatorForm({ ...estimatorForm, hasParking: e.target.checked })}
+                    />
+                    Reserved Car Parking
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={estimatorForm.hasGym}
+                      onChange={e => setEstimatorForm({ ...estimatorForm, hasGym: e.target.checked })}
+                    />
+                    Clubhouse / Gym
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={estimatorForm.hasPowerBackup}
+                      onChange={e => setEstimatorForm({ ...estimatorForm, hasPowerBackup: e.target.checked })}
+                    />
+                    100% Power Backup
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={estimatorForm.hasSecurity}
+                      onChange={e => setEstimatorForm({ ...estimatorForm, hasSecurity: e.target.checked })}
+                    />
+                    24/7 Gated Security
+                  </label>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={estimating}
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  fontWeight: '700',
+                  fontSize: '0.95rem',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                <Sparkles size={18} /> {estimating ? 'Computing Fair Market Rent...' : 'Calculate Fair Rent with AI'}
+              </button>
+            </form>
+
+            {/* Estimator Result Box */}
+            {estimatorResult && (
+              <div style={{
+                marginTop: '1.5rem',
+                padding: '1.25rem',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <div>
+                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#10b981', fontWeight: '700' }}>
+                      Recommended Fair Rent
+                    </span>
+                    <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#34d399', display: 'flex', alignItems: 'center' }}>
+                      <IndianRupee size={22} />
+                      {Number(estimatorResult.estimatedRent).toLocaleString('en-IN')}
+                      <span style={{ fontSize: '0.85rem', fontWeight: '400', color: 'var(--text-muted)', marginLeft: '4px' }}>/month</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                      color: '#60a5fa'
+                    }}>
+                      {estimatorResult.confidenceScore}% Confidence
+                    </span>
+                    <div style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '600', marginTop: '4px' }}>
+                      {estimatorResult.marketDemand}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: '1.4' }}>
+                  {estimatorResult.summary}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '6px' }}>
+                  <div>
+                    <div style={{ color: 'var(--text-muted)' }}>Base Area Rent</div>
+                    <div style={{ fontWeight: '700' }}>₹{Number(estimatorResult.baseRent).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: 'var(--text-muted)' }}>Furnishing Extra</div>
+                    <div style={{ fontWeight: '700', color: '#38bdf8' }}>+₹{Number(estimatorResult.furnishingPremium).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: 'var(--text-muted)' }}>Amenities Bonus</div>
+                    <div style={{ fontWeight: '700', color: '#a78bfa' }}>+₹{Number(estimatorResult.amenityBonus).toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    style={{ flex: 1, fontSize: '0.8rem' }}
+                    onClick={() => {
+                      setFilters(prev => ({
+                        ...prev,
+                        city: estimatorForm.city,
+                        maxPrice: estimatorResult.maxRent ? estimatorResult.maxRent.toString() : ''
+                      }));
+                      setShowEstimator(false);
+                    }}>
+                    Apply to Search Filters
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    style={{ fontSize: '0.8rem' }}
+                    onClick={() => setShowEstimator(false)}>
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 900px) {

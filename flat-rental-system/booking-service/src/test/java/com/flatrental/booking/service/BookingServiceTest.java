@@ -5,6 +5,8 @@ import com.flatrental.booking.dto.BookingRequest;
 import com.flatrental.booking.dto.BookingResponse;
 import com.flatrental.booking.dto.OwnerContactShareDto;
 import com.flatrental.booking.dto.PropertyDto;
+import com.flatrental.booking.dto.TenantKycRequest;
+import com.flatrental.booking.dto.TenantKycResponse;
 import com.flatrental.booking.dto.TenantVerificationDto;
 import com.flatrental.booking.entity.Booking;
 import com.flatrental.booking.entity.BookingStatus;
@@ -267,5 +269,38 @@ class BookingServiceTest {
                 () -> bookingService.createBooking(request, 200L));
 
         verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    @DisplayName("Should successfully verify tenant KYC with valid Aadhaar, PAN and compute high CIBIL score")
+    void testVerifyTenantKyc_Success() {
+        TenantKycRequest kycReq = new TenantKycRequest();
+        kycReq.setFullName("Aman Verma");
+        kycReq.setAadhaarNumber("987654321098");
+        kycReq.setPanNumber("ABCDE1234F");
+        kycReq.setCompanyName("Infosys Limited");
+        kycReq.setMonthlyIncome(85000.0);
+
+        TenantKycResponse response = bookingService.verifyTenantKyc(200L, kycReq, 200L);
+
+        assertNotNull(response);
+        assertEquals("VERIFIED", response.getKycStatus());
+        assertEquals("LOW", response.getRiskLevel());
+        assertTrue(response.getCibilScore() >= 750);
+        assertEquals("XXXX-XXXX-1098", response.getAadhaarMasked());
+        assertEquals("AB******4F", response.getPanMasked());
+        assertNotNull(response.getReferenceNumber());
+    }
+
+    @Test
+    @DisplayName("Should reject KYC verification when requesting user does not match tenant ID")
+    void testVerifyTenantKyc_WrongUser_ThrowsException() {
+        TenantKycRequest kycReq = new TenantKycRequest();
+        kycReq.setFullName("Aman Verma");
+        kycReq.setAadhaarNumber("987654321098");
+        kycReq.setPanNumber("ABCDE1234F");
+
+        assertThrows(InvalidBookingException.class,
+                () -> bookingService.verifyTenantKyc(200L, kycReq, 999L));
     }
 }

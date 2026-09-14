@@ -2,6 +2,8 @@ package com.flatrental.property.service;
 
 import com.flatrental.property.dto.PropertyRequest;
 import com.flatrental.property.dto.PropertyResponse;
+import com.flatrental.property.dto.RentEstimationRequest;
+import com.flatrental.property.dto.RentEstimationResponse;
 import com.flatrental.property.entity.Property;
 import com.flatrental.property.entity.PropertyType;
 import com.flatrental.property.exception.ResourceNotFoundException;
@@ -298,6 +300,35 @@ class PropertyServiceTest {
         assertEquals("BASE64_IMAGE_2", response.getImageUrls());
 
         verify(propertyRepository, times(1)).save(any(Property.class));
+    }
+
+    @Test
+    @DisplayName("Should accurately estimate market rent for Bangalore 2BHK furnished flat")
+    void testEstimateRent_Bangalore_Success() {
+        RentEstimationRequest request = new RentEstimationRequest();
+        request.setCity("Bangalore");
+        request.setLocality("Indiranagar");
+        request.setArea(1000);
+        request.setBedrooms(2);
+        request.setFurnishing("Furnished");
+        request.setHasParking(true);
+        request.setHasGym(true);
+
+        RentEstimationResponse response = propertyService.estimateRent(request);
+
+        assertNotNull(response);
+        assertTrue(response.getEstimatedRent().compareTo(BigDecimal.ZERO) > 0);
+        assertTrue(response.getConfidenceScore() >= 90);
+        assertNotNull(response.getSummary());
+        assertTrue(response.getSummary().contains("Bangalore"));
+        assertTrue(response.getMinRent().compareTo(response.getEstimatedRent()) < 0);
+        assertTrue(response.getMaxRent().compareTo(response.getEstimatedRent()) > 0);
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when rent estimation request is null")
+    void testEstimateRent_NullRequest_ThrowsException() {
+        assertThrows(IllegalArgumentException.class, () -> propertyService.estimateRent(null));
     }
 
 }

@@ -2,6 +2,8 @@ package com.flatrental.property.controller;
 
 import com.flatrental.property.dto.PropertyRequest;
 import com.flatrental.property.dto.PropertyResponse;
+import com.flatrental.property.dto.RentEstimationRequest;
+import com.flatrental.property.dto.RentEstimationResponse;
 import com.flatrental.property.service.PropertyService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
@@ -141,5 +143,13 @@ public class PropertyController {
             hasBase64 = imageUrls.startsWith("data:image");
         }
         return ResponseEntity.ok(Map.of("count", count, "hasBase64", hasBase64));
+    }
+
+    /**
+     * AI-Powered Rent Estimation API for market valuation.
+     */
+    @PostMapping("/estimate-rent")
+    public ResponseEntity<RentEstimationResponse> estimateRent(@Valid @RequestBody RentEstimationRequest request) {
+        return ResponseEntity.ok(propertyService.estimateRent(request));
     }
 }
