@@ -55,6 +55,7 @@ const EditProperty = () => {
   const [uploadedImages, setUploadedImages] = useState([]);
   const addressInputRef = useRef(null);
   const [customCityMode, setCustomCityMode] = useState(false);
+  const [customLocalityMode, setCustomLocalityMode] = useState(false);
 
   const [form, setForm] = useState({
     title: '',
@@ -133,6 +134,12 @@ const EditProperty = () => {
         if (cityVal) {
           const isKnown = cityVal in locationData;
           setCustomCityMode(!isKnown);
+          if (isKnown) {
+            const isKnownLoc = locationData[cityVal].localities.includes(p.locality);
+            setCustomLocalityMode(!isKnownLoc && !!p.locality);
+          } else {
+            setCustomLocalityMode(true);
+          }
         }
 
         setForm({
@@ -385,15 +392,17 @@ const EditProperty = () => {
                     const val = e.target.value;
                     if (val === 'Other') {
                       setCustomCityMode(true);
+                      setCustomLocalityMode(true);
                       setForm(prev => ({ ...prev, city: '', state: '', locality: '' }));
                     } else {
                       setCustomCityMode(false);
+                      setCustomLocalityMode(false);
                       if (val) {
                         setForm(prev => ({ 
                           ...prev, 
                           city: val, 
-                          state: locationData[val].state, 
-                          locality: locationData[val].localities[0] || '' 
+                          state: locationData[val]?.state || '', 
+                          locality: '' // Clean empty, user selects locality
                         }));
                       } else {
                         setForm(prev => ({ ...prev, city: '', state: '', locality: '' }));
@@ -423,20 +432,48 @@ const EditProperty = () => {
 
               <div className="form-group">
                 <label className="form-label">Locality</label>
-                <input 
-                  type="text" 
-                  name="locality" 
-                  className="form-control" 
-                  placeholder="e.g. Andheri West" 
-                  value={form.locality} 
-                  onChange={handleChange} 
-                  list="locality-suggestions"
-                />
-                <datalist id="locality-suggestions">
-                  {form.city && locationData[form.city] && locationData[form.city].localities.map(loc => (
-                    <option key={loc} value={loc} />
-                  ))}
-                </datalist>
+                {form.city && locationData[form.city] && !customLocalityMode ? (
+                  <select 
+                    name="locality" 
+                    className="form-select" 
+                    value={form.locality} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '__OTHER__') {
+                        setCustomLocalityMode(true);
+                        setForm(prev => ({ ...prev, locality: '' }));
+                      } else {
+                        setForm(prev => ({ ...prev, locality: val }));
+                      }
+                    }}
+                  >
+                    <option value="">Select Locality</option>
+                    {locationData[form.city].localities.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                    <option value="__OTHER__">+ Other (Type manually)</option>
+                  </select>
+                ) : (
+                  <div>
+                    <input 
+                      type="text" 
+                      name="locality" 
+                      className="form-control" 
+                      placeholder="e.g. Andheri West" 
+                      value={form.locality} 
+                      onChange={handleChange} 
+                    />
+                    {form.city && locationData[form.city] && (
+                      <button 
+                        type="button" 
+                        onClick={() => { setCustomLocalityMode(false); setForm(prev => ({ ...prev, locality: '' })); }}
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', padding: '3px 0', marginTop: '2px' }}
+                      >
+                        ← Back to locality dropdown
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -523,88 +560,99 @@ const EditProperty = () => {
               </small>
             </div>
 
-            {/* Thumbnails of uploaded images with primary/delete options */}
+            {/* Thumbnails of uploaded images with primary/cover options */}
             {uploadedImages.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-                {uploadedImages.map((base64, index) => {
-                  const isCover = index === 0;
-                  return (
-                    <div key={index} className="glass-card" style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      borderRadius: '8px', 
-                      overflow: 'hidden', 
-                      border: isCover ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                      backgroundColor: '#ffffff',
-                      boxShadow: isCover ? '0 0 10px rgba(99, 102, 241, 0.2)' : 'none'
-                    }}>
-                      <div style={{ position: 'relative', height: '110px' }}>
-                        <img src={base64} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        {isCover && (
-                          <span style={{ 
-                            position: 'absolute', 
-                            top: '5px', 
-                            left: '5px', 
-                            backgroundColor: 'var(--primary)', 
-                            color: 'white', 
-                            fontSize: '0.7rem', 
-                            fontWeight: 'bold', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                          }}>
-                            ★ Cover
-                          </span>
-                        )}
-                        <button 
-                          type="button" 
-                          onClick={() => {
-                            if (window.confirm("Delete this property image?")) {
-                              removeUploadedImage(index);
-                            }
-                          }}
-                          style={{ 
-                            position: 'absolute', 
-                            top: '5px', 
-                            right: '5px', 
-                            backgroundColor: 'rgba(0,0,0,0.6)', 
-                            border: 'none', 
-                            color: '#ff4d4f', 
-                            width: '24px', 
-                            height: '24px', 
-                            borderRadius: '50%', 
-                            cursor: 'pointer', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justify: 'center' 
-                          }}
-                          title="Delete image"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                      <div style={{ padding: '0.5rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                        {!isCover && (
-                          <button
-                            type="button"
-                            onClick={() => setAsCover(index)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ width: '100%', fontSize: '0.75rem', padding: '0.25rem' }}
+              <div style={{ marginTop: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Property Photos ({uploadedImages.length})</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    ★ First image is the Main Cover Photo shown in search
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '1rem' }}>
+                  {uploadedImages.map((base64, index) => {
+                    const isCover = index === 0;
+                    return (
+                      <div key={index} className="glass-card" style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        borderRadius: '10px', 
+                        overflow: 'hidden', 
+                        border: isCover ? '2.5px solid #6366f1' : '1px solid var(--border-color)',
+                        boxShadow: isCover ? '0 0 15px rgba(99, 102, 241, 0.35)' : 'none',
+                        backgroundColor: 'var(--card-bg, #1e293b)',
+                        transition: 'all 0.25s ease'
+                      }}>
+                        <div style={{ position: 'relative', height: '120px' }}>
+                          <img src={base64} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          {isCover && (
+                            <span style={{ 
+                              position: 'absolute', 
+                              top: '6px', 
+                              left: '6px', 
+                              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+                              color: 'white', 
+                              fontSize: '0.7rem', 
+                              fontWeight: '800', 
+                              padding: '3px 8px', 
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                            }}>
+                              ★ COVER PHOTO
+                            </span>
+                          )}
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              if (window.confirm("Delete this property image?")) {
+                                removeUploadedImage(index);
+                              }
+                            }}
+                            style={{ 
+                              position: 'absolute', 
+                              top: '6px', 
+                              right: '6px', 
+                              backgroundColor: 'rgba(0,0,0,0.7)', 
+                              border: 'none', 
+                              color: '#ff4d4f', 
+                              width: '24px', 
+                              height: '24px', 
+                              borderRadius: '50%', 
+                              cursor: 'pointer', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '12px'
+                            }}
+                            title="Delete image"
                           >
-                            Set as Cover
+                            ✕
                           </button>
-                        )}
-                        {isCover && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 'bold', padding: '0.25rem' }}>
-                            Primary Image
-                          </span>
-                        )}
+                        </div>
+                        <div style={{ padding: '0.6rem', display: 'flex', justifyContent: 'center' }}>
+                          {isCover ? (
+                            <span style={{ fontSize: '0.8rem', color: '#6366f1', fontWeight: '700', padding: '0.2rem' }}>
+                              ✓ Active Cover Photo
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setAsCover(index)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ width: '100%', fontSize: '0.78rem', padding: '0.3rem 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                            >
+                              ★ Set as Cover
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

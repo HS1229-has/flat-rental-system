@@ -149,4 +149,52 @@ class RegisterRequestValidationTest {
 
         assertTrue(violations.isEmpty(), "Valid request should produce 0 violations");
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"HARSH SAHU1", "User123", "John@Doe", "Test_User", "Name!"})
+    @DisplayName("Should reject full names containing numbers or special characters")
+    void testInvalidFullNameWithNumbersOrSymbols_Rejected(String invalidName) {
+        RegisterRequest request = createValidRequest();
+        request.setFullName(invalidName);
+
+        Set<ConstraintViolation<RegisterRequest>> violations = validator.validate(request);
+        boolean hasNameViolation = violations.stream()
+                .anyMatch(v -> v.getPropertyPath().toString().equals("fullName"));
+
+        assertTrue(hasNameViolation, "Full name with numbers/symbols '" + invalidName + "' must be rejected");
+    }
+
+    @Test
+    @DisplayName("Should reject null or blank full name")
+    void testNullOrBlankFullName_Rejected() {
+        RegisterRequest request = createValidRequest();
+        request.setFullName(null);
+
+        Set<ConstraintViolation<RegisterRequest>> violations = validator.validate(request);
+        boolean hasNameViolation = violations.stream()
+                .anyMatch(v -> v.getPropertyPath().toString().equals("fullName"));
+
+        assertTrue(hasNameViolation, "Null full name must be rejected");
+
+        request.setFullName("   ");
+        violations = validator.validate(request);
+        hasNameViolation = violations.stream()
+                .anyMatch(v -> v.getPropertyPath().toString().equals("fullName"));
+
+        assertTrue(hasNameViolation, "Blank full name must be rejected");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Harsh Sahu", "John Doe", "Amit Kumar", "Dr Priya Sharma"})
+    @DisplayName("Should accept valid full names with only letters and spaces")
+    void testValidFullName_Accepted(String validName) {
+        RegisterRequest request = createValidRequest();
+        request.setFullName(validName);
+
+        Set<ConstraintViolation<RegisterRequest>> violations = validator.validate(request);
+        boolean hasNameViolation = violations.stream()
+                .anyMatch(v -> v.getPropertyPath().toString().equals("fullName"));
+
+        assertFalse(hasNameViolation, "Valid full name '" + validName + "' must be accepted");
+    }
 }

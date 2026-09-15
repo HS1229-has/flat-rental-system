@@ -23,6 +23,8 @@ public class RegisterRequest {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
+    @NotBlank(message = "Full name is required")
+    @Pattern(regexp = "^[a-zA-Z\\s]{2,50}$", message = "Full name must contain only alphabets and spaces (2-50 characters)")
     private String fullName;
 
     @NotBlank(message = "Phone number is required")
