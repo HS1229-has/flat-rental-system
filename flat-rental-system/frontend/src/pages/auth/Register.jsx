@@ -43,6 +43,8 @@ const Register = () => {
 
     if (!formData.fullName.trim()) {
       errs.fullName = 'Full Name is required';
+    } else if (!/^[a-zA-Z\s]{2,50}$/.test(formData.fullName.trim())) {
+      errs.fullName = 'Full Name must contain only alphabets and spaces (2-50 characters, no numbers)';
     }
 
     if (!formData.email.trim()) {
