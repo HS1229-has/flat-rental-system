@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LuxeFlats – Master Unit Testing & Mockito Deep-Dive Guide</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm 14mm 12mm 14mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 9pt;
+      line-height: 1.45;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+
+    /* Header */
+    .header-box {
+      border-bottom: 2.5px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .top-badge {
+      display: inline-block;
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 4px;
+    }
+    h1.doc-title {
+      font-size: 17pt;
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+    .doc-subtitle {
+      font-size: 9.5pt;
+      color: #475569;
+      font-weight: 500;
+    }
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 7.8pt;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 4px;
+    }
+
+    /* Section Headings */
+    h2.section-title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-left: 4px solid #10b981;
+      padding-left: 8px;
+      margin: 16px 0 6px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    h3.sub-title {
+      font-size: 9.8pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 10px 0 4px 0;
+    }
+    p { margin: 0 0 5px 0; }
+
+    /* Callouts */
+    .callout {
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin: 6px 0;
+      font-size: 8.5pt;
+      border-left: 3.5px solid;
+    }
+    .callout-info { background: #f8fafc; border-color: #3b82f6; color: #1e3a8a; }
+    .callout-success { background: #f0fdf4; border-color: #22c55e; color: #14532d; }
+    .callout-viva { background: #faf5ff; border-color: #8b5cf6; color: #581c87; }
+    .callout-viva strong { color: #6b21a8; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0 10px 0;
+      font-size: 8pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 4px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    /* Code Blocks */
+    pre, code {
+      font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    }
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 7.6pt;
+      line-height: 1.35;
+      margin: 5px 0 6px 0;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    code.inline-code {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-size: 8pt;
+      border: 1px solid #e2e8f0;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 7.2pt;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+    .badge-pass { background: #dcfce7; color: #166534; }
+    .badge-info { background: #e0e7ff; color: #3730a3; }
+
+    .page-break { page-break-before: always; }
+  </style>
+</head>
+<body>
+
+  <!-- COVER HEADER -->
+  <div class="header-box">
+    <span class="top-badge">100% Test Pass Rate – 103 Total Tests</span>
+    <h1 class="doc-title">Master Unit Testing & Mockito Technical Guide</h1>
+    <div class="doc-subtitle">Exhaustive Code-Level Walkthrough across Auth, Property, Booking, and Payment Services</div>
+    <div class="meta-bar">
+      <span><strong>Stack:</strong> JUnit 5 (Jupiter) | Mockito 5 | MockMvc | Jakarta Bean Validation | JaCoCo</span>
+      <span><strong>Test Status:</strong> 103 Tests Executed, 0 Failures, 0 Errors</span>
+      <span><strong>Scope:</strong> Complete Microservice Fleet</span>
+    </div>
+  </div>
+
+  <!-- CHAPTER 1: PHILOSOPHY -->
+  <h2 class="section-title">1. The Fundamentals of Unit Testing & Mockito Mechanics</h2>
+  <p>
+    Unit testing verifies that a small, isolated piece of code (a single method or class) performs exactly as intended under both valid and erroneous inputs. In enterprise Spring Boot development, <strong>unit tests do not start an actual web server (Tomcat) and do not connect to a physical MySQL database</strong>.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Concept / Annotation</th>
+        <th style="width: 35%;">What it Does in Code</th>
+        <th style="width: 40%;">Why We Use It (Enterprise Benefit)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>@ExtendWith(MockitoExtension.class)</code></td>
+        <td>Initializes the Mockito testing framework on JUnit 5 test classes.</td>
+        <td>Enables automatic initialization of mocks without writing boilerplate <code>openMocks()</code> setup code.</td>
+      </tr>
+      <tr>
+        <td><code>@Mock</code></td>
+        <td>Creates a fake dummy instance of a dependency (e.g., <code>UserRepository</code>).</td>
+        <td>Isolates the class under test. No real database queries or network sockets are ever touched.</td>
+      </tr>
+      <tr>
+        <td><code>@InjectMocks</code></td>
+        <td>Creates the real instance of the service and injects all <code>@Mock</code> fields into it.</td>
+        <td>Emulates Spring's Dependency Injection (DI) mechanism inside memory in a fraction of a millisecond.</td>
+      </tr>
+      <tr>
+        <td><code>when(...).thenReturn(...)</code></td>
+        <td><strong>Stubbing:</strong> Instructs a mock object to return a predefined value when called.</td>
+        <td>Simulates any scenario (e.g., user exists, property found, credit score high) on demand.</td>
+      </tr>
+      <tr>
+        <td><code>assertThrows(...)</code></td>
+        <td>Verifies that executing a lambda throws the exact expected exception.</td>
+        <td>Essential for negative testing (verifying that invalid inputs trigger proper 400/404/409 errors).</td>
+      </tr>
+      <tr>
+        <td><code>verify(mock, times(1))</code></td>
+        <td>Checks whether a mock method was invoked the expected number of times.</td>
+        <td>Proves that side-effects happened (e.g., <code>save()</code> called once) or didn't (<code>never()</code> called on errors).</td>
+      </tr>
+      <tr>
+        <td><code>MockMvc</code></td>
+        <td>Spring's virtual HTTP client that executes controller endpoints in-memory.</td>
+        <td>Tests HTTP routing, JSON serialization, and <code>GlobalExceptionHandler</code> without starting a real port.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-viva">
+    <strong>💡 The AAA (Arrange-Act-Assert) Pattern:</strong><br>
+    Every test method in our project follows this clean structure:
+    <strong>1. Arrange (Given):</strong> Prepare mock inputs and stub mock behaviors with <code>when().thenReturn()</code>.<br>
+    <strong>2. Act (When):</strong> Invoke the actual service method (e.g., <code>authService.register(request)</code>).<br>
+    <strong>3. Assert (Then):</strong> Check returned values with <code>assertEquals</code> / <code>assertNotNull</code>, and verify interactions with <code>verify()</code>.
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 10px 0;" />
+
+  <!-- CHAPTER 2: AUTH SERVICE -->
+  <h2 class="section-title">2. Auth Service Testing (57 Tests – 100% Pass)</h2>
+  <p>
+    <strong>Test Suite:</strong> 
+    <code class="inline-code">AuthServiceTest.java</code> (15 Tests), 
+    <code class="inline-code">RegisterRequestValidationTest.java</code> (33 Tests), 
+    <code class="inline-code">AuthControllerValidationTest.java</code> (5 Tests), 
+    <code class="inline-code">JwtUtilTest.java</code> (4 Tests).
+  </p>
+
+  <h3 class="sub-title">A. Service Layer: Happy Path & Duplicate User Defense (`AuthServiceTest.java`)</h3>
+  <pre>// 1. SUCCESSFUL REGISTRATION TEST
+@Test
+void testRegister_Success() {
+    RegisterRequest request = new RegisterRequest();
+    request.setUsername("newuser");
+    request.setEmail("new@example.com");
+    request.setPassword("password123");
+    request.setFullName("New User");
+    request.setPhoneNumber("9999999999");
+    request.setRole("TENANT");
+
+    // Stubbing repository checks
+    when(userRepository.existsByUsername("newuser")).thenReturn(false);
+    when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+    when(passwordEncoder.encode("password123")).thenReturn("hashed123");
+    when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+        User u = inv.getArgument(0);
+        u.setId(10L);
+        return u;
+    });
+
+    UserResponse response = authService.register(request);
+
+    assertNotNull(response);
+    assertEquals(10L, response.getId());
+    assertEquals("newuser", response.getUsername());
+    assertEquals("ROLE_TENANT", response.getRole());
+    verify(userRepository, times(1)).save(any(User.class)); // Database save verified!
+}
+
+// 2. DUPLICATE USERNAME NEGATIVE TEST
+@Test
+void testRegister_DuplicateUsername() {
+    RegisterRequest request = new RegisterRequest();
+    request.setUsername("testuser");
+
+    when(userRepository.existsByUsername("testuser")).thenReturn(true);
+
+    assertThrows(DuplicateResourceException.class, () -> authService.register(request));
+    verify(userRepository, never()).save(any(User.class)); // Ensures DB is NOT corrupted!
+}</pre>
+
+  <h3 class="sub-title">B. Bean Validation Constraints (`RegisterRequestValidationTest.java`)</h3>
+  <p>
+    Directly tests Jakarta annotations (`@NotBlank`, `@Pattern`, `@Size`) against boundary edge cases:
+  </p>
+  <ul>
+    <li><strong>Full Name Regex (`^[a-zA-Z\s]{2,50}$`):</strong> Parametric tests reject digits and symbols (e.g. <code>"HARSH SAHU1"</code>, <code>"User123"</code>, <code>"Name!"</code>) with 100% assertion coverage.</li>
+    <li><strong>Indian Phone Numbers (`^[6-9]\d{9}$`):</strong> Rejects 9-digit phones (<code>"987654321"</code>), 11-digit phones, alphabetic strings, and invalid starting digits (<code>"5876543210"</code>).</li>
+  </ul>
+
+  <h3 class="sub-title">C. HTTP MockMvc Endpoints (`AuthControllerValidationTest.java`)</h3>
+  <pre>@Test
+void testRegister_InvalidEmail_Returns400() throws Exception {
+    RegisterRequest request = createValidRequest();
+    request.setEmail("@abc.com"); // Malformed email
+
+    mockMvc.perform(post("/api/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.details[0]").value(containsString("email")));
+
+    verify(userRepository, never()).save(any(User.class));
+}</pre>
+
+  <div class="page-break"></div>
+
+  <!-- CHAPTER 3: PROPERTY SERVICE -->
+  <h2 class="section-title">3. Property Service Testing (18 Tests – 100% Pass)</h2>
+  <p>
+    <strong>Test Suite:</strong> <code class="inline-code">PropertyServiceTest.java</code><br>
+    <strong>Core Areas Tested:</strong> CRUD operations, Ownership Authorization, Caching, and the <strong>AI Rent Estimation Algorithm</strong>.
+  </p>
+
+  <h3 class="sub-title">A. AI Rent Estimation Model Tests</h3>
+  <p>
+    Tests the mathematical heuristic algorithm in <code>PropertyService.java</code> verifying that city base rates, bedroom layouts, furnishing multipliers, and amenities compute an accurate market valuation with bounds and confidence intervals:
+  </p>
+  <pre>@Test
+@DisplayName("Should accurately estimate market rent for Bangalore 2BHK furnished flat")
+void testEstimateRent_Bangalore_Success() {
+    RentEstimationRequest request = new RentEstimationRequest();
+    request.setCity("Bangalore");
+    request.setLocality("Indiranagar");
+    request.setArea(1000);
+    request.setBedrooms(2);
+    request.setFurnishing("Furnished");
+    request.setHasParking(true);
+    request.setHasGym(true);
+
+    RentEstimationResponse response = propertyService.estimateRent(request);
+
+    assertNotNull(response);
+    assertTrue(response.getEstimatedRent().compareTo(BigDecimal.ZERO) > 0);
+    assertTrue(response.getConfidenceScore() >= 90); // High confidence score assertion
+    assertNotNull(response.getSummary());
+    assertTrue(response.getSummary().contains("Bangalore"));
+    
+    // Bounds verification: MinRent < EstimatedRent < MaxRent
+    assertTrue(response.getMinRent().compareTo(response.getEstimatedRent()) < 0);
+    assertTrue(response.getMaxRent().compareTo(response.getEstimatedRent()) > 0);
+}
+
+@Test
+@DisplayName("Should throw IllegalArgumentException when rent estimation request is null")
+void testEstimateRent_NullRequest_ThrowsException() {
+    assertThrows(IllegalArgumentException.class, () -> propertyService.estimateRent(null));
+}</pre>
+
+  <h3 class="sub-title">B. Listing Ownership Security Test</h3>
+  <p>
+    Prevents Insecure Direct Object References (IDOR). If an attacker attempts to update or delete a listing owned by another landlord, the service rejects the call:
+  </p>
+  <pre>@Test
+void testUpdateProperty_UnauthorizedOwner_ThrowsException() {
+    when(propertyRepository.findById(1L)).thenReturn(Optional.of(sampleProperty)); // ownerId = 10L
+
+    PropertyRequest updateReq = new PropertyRequest();
+    updateReq.setTitle("Hacked Title");
+
+    // Calling with requestingUserId = 999L (attacker)
+    assertThrows(UnauthorizedActionException.class,
+            () -> propertyService.updateProperty(1L, updateReq, 999L));
+
+    verify(propertyRepository, never()).save(any(Property.class));
+}</pre>
+
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 10px 0;" />
+
+  <!-- CHAPTER 4: BOOKING SERVICE -->
+  <h2 class="section-title">4. Booking Service Testing (15 Tests – 100% Pass)</h2>
+  <p>
+    <strong>Test Suite:</strong> <code class="inline-code">BookingServiceTest.java</code><br>
+    <strong>Core Areas Tested:</strong> Date validation, double-booking rejection, state machine transitions, and <strong>Automated Tenant KYC & CIBIL Verification</strong>.
+  </p>
+
+  <h3 class="sub-title">A. Tenant Government KYC Verification Engine</h3>
+  <p>
+    Validates Indian UIDAI Aadhaar (12 digits) and Income Tax PAN (10 chars), tests automated data masking for privacy (CWE/DPDP compliance), and validates calculated CIBIL credit scores:
+  </p>
+  <pre>@Test
+@DisplayName("Should successfully verify tenant KYC with valid Aadhaar, PAN and compute high CIBIL score")
+void testVerifyTenantKyc_Success() {
+    TenantKycRequest kycReq = new TenantKycRequest();
+    kycReq.setFullName("Aman Verma");
+    kycReq.setAadhaarNumber("987654321098");
+    kycReq.setPanNumber("ABCDE1234F");
+    kycReq.setCompanyName("Infosys Limited");
+    kycReq.setMonthlyIncome(85000.0);
+
+    TenantKycResponse response = bookingService.verifyTenantKyc(200L, kycReq, 200L);
+
+    assertNotNull(response);
+    assertEquals("VERIFIED", response.getKycStatus());
+    assertEquals("LOW", response.getRiskLevel());
+    assertTrue(response.getCibilScore() >= 750); // CIBIL score assertion
+    assertEquals("XXXX-XXXX-1098", response.getAadhaarMasked()); // Privacy masking check
+    assertEquals("AB******4F", response.getPanMasked());
+    assertNotNull(response.getReferenceNumber());
+}
+
+@Test
+@DisplayName("Should reject KYC verification when requesting user does not match tenant ID")
+void testVerifyTenantKyc_WrongUser_ThrowsException() {
+    TenantKycRequest kycReq = new TenantKycRequest();
+    kycReq.setAadhaarNumber("987654321098");
+    kycReq.setPanNumber("ABCDE1234F");
+
+    // Requester 999L is not tenant 200L
+    assertThrows(InvalidBookingException.class,
+            () -> bookingService.verifyTenantKyc(200L, kycReq, 999L));
+}</pre>
+
+  <h3 class="sub-title">B. Date Conflict & Overlap Detection Test</h3>
+  <p>
+    Tests chronological sanity (end date after start date) and rejects missing or null dates:
+  </p>
+  <pre>@Test
+void testCreateBooking_NullStartDate_ThrowsException() {
+    BookingRequest request = new BookingRequest();
+    request.setPropertyId(100L);
+    request.setStartDate(null);
+    request.setEndDate(LocalDate.of(2026, 9, 30));
+
+    assertThrows(InvalidBookingException.class, () -> bookingService.createBooking(request, 200L));
+    verify(bookingRepository, never()).save(any(Booking.class));
+}</pre>
+
+  <div class="page-break"></div>
+
+  <!-- CHAPTER 5: PAYMENT SERVICE -->
+  <h2 class="section-title">5. Payment Service Testing (13 Tests – 100% Pass)</h2>
+  <p>
+    <strong>Test Suite:</strong> <code class="inline-code">MockPaymentServiceTest.java</code><br>
+    <strong>Core Areas Tested:</strong> Payment creation, high-entropy transaction ID generation, idempotency (duplicate payment defense), financial boundary guards (zero/negative amounts), and refund authorization.
+  </p>
+
+  <h3 class="sub-title">A. Financial Boundary & Zero/Negative Amount Defense</h3>
+  <p>
+    Financial services must rigorously reject zero or negative payments to prevent ledger corruption:
+  </p>
+  <pre>@Test
+@DisplayName("Should reject payment with zero amount")
+void testCreatePayment_ZeroAmount_ThrowsException() {
+    PaymentRequest request = new PaymentRequest();
+    request.setBookingId(100L);
+    request.setAmount(BigDecimal.ZERO); // ₹0.00
+    request.setPaymentMethod(PaymentMethod.CARD);
+    request.setPaymentType("TOKEN");
+
+    assertThrows(PaymentProcessingException.class,
+            () -> paymentService.createPayment(request, 200L));
+    verify(paymentRepository, never()).save(any(Payment.class));
+}
+
+@Test
+@DisplayName("Should reject payment with negative amount")
+void testCreatePayment_NegativeAmount_ThrowsException() {
+    PaymentRequest request = new PaymentRequest();
+    request.setBookingId(100L);
+    request.setAmount(new BigDecimal("-5000.00")); // Negative amount
+    request.setPaymentMethod(PaymentMethod.CARD);
+    request.setPaymentType("TOKEN");
+
+    assertThrows(PaymentProcessingException.class,
+            () -> paymentService.createPayment(request, 200L));
+    verify(paymentRepository, never()).save(any(Payment.class));
+}</pre>
+
+  <h3 class="sub-title">B. Idempotency & Duplicate Payment Prevention</h3>
+  <p>
+    If a user accidentally clicks "Pay Now" twice or network packets duplicate, the system checks existing completed payments for that booking and rejects duplicate token charges:
+  </p>
+  <pre>@Test
+@DisplayName("Should throw PaymentProcessingException on duplicate token payment for same booking")
+void testCreatePayment_DuplicateToken_ThrowsException() {
+    PaymentRequest request = new PaymentRequest();
+    request.setBookingId(100L);
+    request.setAmount(new BigDecimal("5000.00"));
+    request.setPaymentType("TOKEN");
+
+    // Mocking existing completed payment
+    when(paymentRepository.findByBookingId(100L)).thenReturn(List.of(sampleTokenPayment));
+
+    assertThrows(PaymentProcessingException.class, () -> paymentService.createPayment(request, 200L));
+    verify(paymentRepository, never()).save(any(Payment.class));
+}</pre>
+
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 10px 0;" />
+
+  <!-- CHAPTER 6: TOP VIVA QUESTIONS -->
+  <h2 class="section-title">6. Top 8 Unit Testing Viva Questions & Model Answers</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 5%;">#</th>
+        <th style="width: 35%;">Examiner Question</th>
+        <th style="width: 60%;">Your Bulletproof Model Answer</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>What is the difference between @Mock and @InjectMocks?</strong></td>
+        <td><em>"@Mock creates a fake dummy instance of a dependency (like UserRepository). @InjectMocks creates the real instance of the service class under test and injects those mock objects into its fields or constructor."</em></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>What is Mockito Stubbing?</strong></td>
+        <td><em>"Stubbing is programming a mock object's behavior using when().thenReturn(). It tells the mock: 'When method X is called with argument Y, return fake answer Z without executing real database queries.'"</em></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>Why do you verify() with never() in negative tests?</strong></td>
+        <td><em>"In negative exception tests, verifying never().save() proves data integrity: if an error or duplicate user occurs, the system halted execution immediately and never attempted to write corrupted data to MySQL."</em></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>How does MockMvc test controllers without Tomcat?</strong></td>
+        <td><em>"MockMvc uses Spring's MockServletContext to build a mock HTTP environment. It serializes JSON payloads, invokes controller mapping annotations, and verifies HTTP status codes and JSON responses in memory."</em></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><strong>Why use ParameterizedTest in JUnit 5?</strong></td>
+        <td><em>"@ParameterizedTest with @ValueSource allows executing the same test logic across multiple input variations (like 10 different invalid phone numbers or email strings) without duplicating code."</em></td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><strong>How do you test the AI Rent Estimator?</strong></td>
+        <td><em>"In PropertyServiceTest, we feed a complete RentEstimationRequest and assert that estimatedRent is positive, confidenceScore >= 90, and minRent < estimatedRent < maxRent to guarantee regression stability."</em></td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><strong>How do you test Government KYC without UIDAI server access?</strong></td>
+        <td><em>"We test the KYC engine's algorithmic validation: regex pattern conformity for Aadhaar and PAN, data masking functions (XXXX-XXXX-1098), and credit scoring calculations in complete isolation."</em></td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><strong>What is JaCoCo?</strong></td>
+        <td><em>"JaCoCo (Java Code Coverage) is a bytecode instrumentation tool configured in our pom.xml that analyzes test executions and generates HTML reports showing line, branch, and instruction coverage."</em></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
