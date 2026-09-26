@@ -299,18 +299,21 @@ const Properties = () => {
     };
   }, []);
 
+  const fetchProperties = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await api.get('/properties');
+      setProperties(res.data || []);
+    } catch (err) {
+      console.error("Fetch properties error:", err);
+      setError('Cannot connect to Backend API (http://localhost:8080/api/properties). Please make sure API Gateway (port 8080) and Property Service (port 8082) are running in IntelliJ and MySQL is started.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get('/properties');
-        setProperties(res.data);
-      } catch (err) {
-        setError('Failed to load properties.');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchProperties();
   }, []);
 
@@ -717,7 +720,21 @@ const Properties = () => {
 
         {/* Property Grid or Map View */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {error && <div className="alert alert-danger">{error}</div>}
+          {error && (
+            <div className="alert alert-danger" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', padding: '1rem 1.25rem', borderRadius: '10px', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <AlertCircle size={20} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+              <button
+                type="button"
+                onClick={fetchProperties}
+                className="btn btn-sm btn-primary"
+                style={{ whiteSpace: 'nowrap', fontWeight: '700', padding: '0.4rem 0.9rem' }}>
+                Retry Connection
+              </button>
+            </div>
+          )}
 
           {viewMode === 'map' ? (
             <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '12px' }}>
