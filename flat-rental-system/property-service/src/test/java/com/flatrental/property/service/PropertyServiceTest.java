@@ -331,4 +331,46 @@ class PropertyServiceTest {
         assertThrows(IllegalArgumentException.class, () -> propertyService.estimateRent(null));
     }
 
+    @Test
+    @DisplayName("Should successfully toggle property availability when requested by owner")
+    void testToggleAvailability_Success() {
+        sampleProperty.setAvailable(true);
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(sampleProperty));
+        when(propertyRepository.save(any(Property.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        PropertyResponse response = propertyService.toggleAvailability(1L, 10L, false);
+
+        assertNotNull(response);
+        assertFalse(response.isAvailable());
+        verify(propertyRepository, times(1)).save(sampleProperty);
+    }
+
+    @Test
+    @DisplayName("Should throw UnauthorizedActionException when non-owner tries to toggle availability")
+    void testToggleAvailability_Unauthorized() {
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(sampleProperty));
+
+        assertThrows(UnauthorizedActionException.class, () -> propertyService.toggleAvailability(1L, 999L, false));
+        verify(propertyRepository, never()).save(any(Property.class));
+    }
+
+    @Test
+    @DisplayName("Should update availability status via updateProperty")
+    void testUpdateProperty_WithAvailability() {
+        PropertyRequest updateReq = new PropertyRequest();
+        updateReq.setTitle("Updated Title");
+        updateReq.setAddress("Sector 63");
+        updateReq.setCity("Noida");
+        updateReq.setRentAmount(new BigDecimal("30000.00"));
+        updateReq.setAvailable(false);
+
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(sampleProperty));
+        when(propertyRepository.save(any(Property.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        PropertyResponse updated = propertyService.updateProperty(1L, updateReq, 10L);
+
+        assertNotNull(updated);
+        assertFalse(updated.isAvailable());
+        verify(propertyRepository, times(1)).save(any(Property.class));
+    }
 }

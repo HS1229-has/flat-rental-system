@@ -17,8 +17,9 @@ api.interceptors.request.use(
     
     // Some endpoints need X-User-Id, we can get it from localStorage
     const user = JSON.parse(localStorage.getItem('user') || 'null');
-    if (user && user.id) {
-        config.headers['X-User-Id'] = user.id;
+    const effectiveUserId = user ? (user.userId || user.id) : null;
+    if (effectiveUserId) {
+      config.headers['X-User-Id'] = effectiveUserId;
     }
     
     return config;

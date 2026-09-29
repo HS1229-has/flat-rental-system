@@ -42,7 +42,12 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return userData;
     } catch (error) {
-      throw error.response?.data?.message || 'Login failed';
+      const message = error.response?.data?.message || error.message || 'Login failed';
+      const customErr = new Error(message);
+      customErr.status = error.response?.status;
+      customErr.details = error.response?.data?.details || [];
+      customErr.response = error.response;
+      throw customErr;
     }
   };
 
@@ -51,7 +56,12 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/register', userData);
       return response.data;
     } catch (error) {
-      throw error.response?.data?.message || 'Registration failed';
+      const message = error.response?.data?.message || error.message || 'Registration failed';
+      const customErr = new Error(message);
+      customErr.status = error.response?.status;
+      customErr.details = error.response?.data?.details || [];
+      customErr.response = error.response;
+      throw customErr;
     }
   };
 

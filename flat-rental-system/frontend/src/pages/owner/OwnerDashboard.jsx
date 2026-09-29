@@ -45,6 +45,8 @@ const OwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState('properties');
   const [deletingId, setDeletingId] = useState(null);
   const [actioningId, setActioningId] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
+  const [error, setError] = useState('');
 
   // Persistent Owner Contact states
   const [ownerContactProfile, setOwnerContactProfile] = useState({ fullName: '', contactPhone: '', contactEmail: '', preferredContactMethod: 'Phone' });
@@ -175,6 +177,20 @@ const OwnerDashboard = () => {
     }
   };
 
+  const handleToggleAvailability = async (property) => {
+    setTogglingId(property.id);
+    try {
+      const nextStatus = property.available === false;
+      await api.patch(`/properties/${property.id}/availability?available=${nextStatus}`);
+      setProperties(prev => prev.map(item => item.id === property.id ? { ...item, available: nextStatus } : item));
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      alert('Failed to update availability: ' + errMsg);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const loadOwnerContactProfile = async () => {
     if (!user) return;
     try {
@@ -197,6 +213,7 @@ const OwnerDashboard = () => {
     if (!user) return;
     try {
       setLoading(true);
+      setError('');
       const propRes = await api.get(`/properties/owner/${user.userId}`);
       const propList = propRes.data || [];
       setProperties(propList);
@@ -218,13 +235,14 @@ const OwnerDashboard = () => {
         const payList = payRes.data || [];
         const ownerBookingIds = new Set(allBookings.map(b => b.id));
         const ownerPayments = payList.filter(p => ownerBookingIds.has(p.bookingId) && p.status === 'COMPLETED');
-        totalEarned = ownerPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+        totalEarned = ownerPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
       } catch (payErr) {
-        console.error('Error loading payments:', payErr);
+        console.warn('Error loading payments:', payErr);
       }
       setTotalEarnings(totalEarned);
     } catch (err) {
       console.error('Error loading owner data:', err);
+      setError('Unable to load your properties from server. Please verify the backend connection.');
     } finally {
       setLoading(false);
     }
@@ -453,6 +471,8 @@ const OwnerDashboard = () => {
 
   const pendingBookings = bookings.filter(b => b.status === 'PENDING' || b.status === 'PENDING_OWNER_APPROVAL').length;
   const awaitingVerificationBookings = bookings.filter(b => b.status === 'TOKEN_PAID' || b.status === 'APPLICATION_DRAFT').length;
+  const activeCount = properties.filter(p => p.available !== false).length;
+  const pausedCount = properties.filter(p => p.available === false).length;
 
   const getPropertyName = (propertyId) => {
     const p = properties.find(prop => prop.id === propertyId);
@@ -466,26 +486,53 @@ const OwnerDashboard = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.25rem', color: 'var(--text-main)' }}>Owner Dashboard</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Manage your properties and review tenant applications</p>
+          <p style={{ color: 'var(--text-muted)' }}>Manage your rental listings and review tenant booking requests</p>
         </div>
-        <Link to="/owner/property/add" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Plus size={18} /> Add Property
-        </Link>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={loadData}
+            disabled={loading}
+            className="btn btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '600' }}
+            title="Refresh dashboard data"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} style={loading ? { animation: 'spin 1.5s linear infinite' } : {}} />
+            Refresh
+          </button>
+          <Link to="/owner/property/add" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700' }}>
+            <Plus size={18} /> Add Property
+          </Link>
+        </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="alert alert-danger" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', padding: '1rem 1.25rem', borderRadius: '10px', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <AlertCircle size={20} color="#f87171" style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+          <button type="button" onClick={loadData} className="btn btn-sm btn-primary">
+            Retry Connection
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
         {[
-          { label: 'My Properties', value: properties.length, icon: Building2, color: '#6366f1' },
-          { label: 'Total Bookings', value: bookings.length, icon: Calendar, color: '#34d399' },
-          { label: 'Awaiting Action', value: pendingBookings + awaitingVerificationBookings, icon: Clock, color: '#fbbf24' },
-          { label: 'Total Earnings', value: `₹${Number(totalEarnings).toLocaleString('en-IN')}`, icon: IndianRupee, color: '#10b981' },
-        ].map(({ label, value, icon: Icon, color }, i) => (
+          { label: 'My Properties', value: properties.length, sub: `${activeCount} Active, ${pausedCount} Paused`, icon: Building2, color: '#6366f1' },
+          { label: 'Total Bookings', value: bookings.length, sub: `${pendingBookings} Pending`, icon: Calendar, color: '#34d399' },
+          { label: 'Awaiting Action', value: pendingBookings + awaitingVerificationBookings, sub: 'Needs Attention', icon: Clock, color: '#fbbf24' },
+          { label: 'Total Earnings', value: `₹${Number(totalEarnings || 0).toLocaleString('en-IN')}`, sub: 'From Completed Leases', icon: IndianRupee, color: '#10b981' },
+        ].map(({ label, value, sub, icon: Icon, color }, i) => (
           <div key={i} className="glass-card" style={{ padding: '1.25rem', backgroundColor: '#ffffff', border: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: '600', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--text-main)' }}>{value}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.35rem', fontWeight: '600', textTransform: 'uppercase' }}>{label}</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--text-main)', lineHeight: '1.2' }}>{value}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{sub}</div>
               </div>
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon size={20} color={color} />
@@ -525,55 +572,125 @@ const OwnerDashboard = () => {
             <Link to="/owner/property/add" className="btn btn-primary">Add Property</Link>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-            {properties.map(p => (
-              <div key={p.id} className="glass-card" style={{ overflow: 'hidden', backgroundColor: '#ffffff', border: '1px solid var(--border-color)' }}>
-                <div style={{ position: 'relative', height: '180px' }}>
-                  <img src={p.imageUrls ? (splitImageUrls(p.imageUrls)[0] || FALLBACK) : FALLBACK} alt={p.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={e => { e.target.src = FALLBACK; }} />
-                  <span style={{
-                    position: 'absolute', top: '0.5rem', right: '0.5rem',
-                    padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700',
-                    backgroundColor: p.available ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.9)', color: 'white'
-                  }}>
-                    {p.available ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <div style={{ padding: '1.25rem' }}>
-                  <h3 style={{ fontWeight: '750', fontSize: '1.05rem', marginBottom: '0.35rem', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-                    <MapPin size={13} /> {p.city}
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Bed size={14} /> {p.bedrooms}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Bath size={14} /> {p.bathrooms}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary-color)', fontWeight: '800' }}>
-                      <IndianRupee size={14} />{Number(p.rentAmount).toLocaleString('en-IN')}/mo
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '1.5rem' }}>
+            {properties.map(p => {
+              const imageCount = p.imageUrls ? splitImageUrls(p.imageUrls).length : 0;
+              const mainImg = p.imageUrls ? (splitImageUrls(p.imageUrls)[0] || FALLBACK) : FALLBACK;
+
+              return (
+                <div key={p.id} className="glass-card" style={{ overflow: 'hidden', backgroundColor: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '14px', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ position: 'relative', height: '190px', backgroundColor: '#0f172a' }}>
+                    <img
+                      src={mainImg}
+                      alt={p.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => { e.target.src = FALLBACK; }}
+                    />
+
+                    {/* Top Left: Property Type Badge */}
+                    <span style={{
+                      position: 'absolute', top: '0.5rem', left: '0.5rem',
+                      padding: '0.25rem 0.65rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700',
+                      backgroundColor: 'rgba(15, 23, 42, 0.85)', color: '#ffffff', backdropFilter: 'blur(6px)',
+                      textTransform: 'uppercase'
+                    }}>
+                      {(p.propertyType || '').replace('_', ' ') || 'FLAT'}
                     </span>
+
+                    {/* Top Right: Availability Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAvailability(p)}
+                      disabled={togglingId === p.id}
+                      style={{
+                        position: 'absolute', top: '0.5rem', right: '0.5rem',
+                        padding: '0.25rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '700',
+                        backgroundColor: p.available ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+                        color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
+                        backdropFilter: 'blur(6px)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                      }}
+                      title="Click to toggle listing between Active and Paused"
+                    >
+                      {togglingId === p.id ? 'Updating...' : p.available ? '● Active' : '○ Paused'}
+                    </button>
+
+                    {/* Bottom Right: Photo Count */}
+                    {imageCount > 1 && (
+                      <span style={{
+                        position: 'absolute', bottom: '0.5rem', right: '0.5rem',
+                        padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '600',
+                        backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', backdropFilter: 'blur(4px)'
+                      }}>
+                        📷 {imageCount}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <Link to={`/properties/${p.id}`} className="btn btn-secondary btn-sm" style={{ flex: 1, textAlign: 'center' }}>
-                      <Eye size={14} /> View
-                    </Link>
-                    <Link to={`/owner/property/edit/${p.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Edit size={14} />
-                    </Link>
-                    <button onClick={() => handleDelete(p.id)} disabled={deletingId === p.id}
-                      className="btn btn-sm" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', cursor: 'pointer' }}>
-                      <Trash2 size={14} /> {deletingId === p.id ? '...' : 'Delete'}
+
+                  <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <h3 style={{ fontWeight: '800', fontSize: '1.05rem', marginBottom: '0.35rem', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.title}>
+                      {p.title || 'Untitled Property'}
+                    </h3>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.85rem' }}>
+                      <MapPin size={14} style={{ flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.locality ? `${p.locality}, ` : ''}{p.city || 'Location N/A'}
+                      </span>
+                    </div>
+
+                    {/* Specs Row */}
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.85rem', fontSize: '0.85rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Bed size={15} /> {p.bedrooms || 1} Bed</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Bath size={15} /> {p.bathrooms || 1} Bath</span>
+                      {p.area && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Ruler size={15} /> {p.area} sqft</span>
+                      )}
+                    </div>
+
+                    {/* Pricing & Furnishing */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingTop: '0.65rem', borderTop: '1px solid var(--border-color)' }}>
+                      <div>
+                        <span style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--primary-color)', display: 'flex', alignItems: 'center' }}>
+                          <IndianRupee size={15} />{Number(p.rentAmount || 0).toLocaleString('en-IN')}<span style={{ fontSize: '0.75rem', fontWeight: '400', color: 'var(--text-muted)', marginLeft: '2px' }}>/mo</span>
+                        </span>
+                        {p.securityDeposit && Number(p.securityDeposit) > 0 && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '1px' }}>
+                            Deposit: ₹{Number(p.securityDeposit).toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+                      {p.furnishing && (
+                        <span style={{ fontSize: '0.72rem', fontWeight: '600', padding: '0.2rem 0.55rem', borderRadius: '4px', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary-color)' }}>
+                          {p.furnishing}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                      <Link to={`/properties/${p.id}`} className="btn btn-secondary btn-sm" style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', fontWeight: '600' }}>
+                        <Eye size={14} /> View
+                      </Link>
+                      <Link to={`/owner/property/edit/${p.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', fontWeight: '600' }}>
+                        <Edit size={14} /> Edit
+                      </Link>
+                      <button onClick={() => handleDelete(p.id)} disabled={deletingId === p.id}
+                        className="btn btn-sm" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600' }}>
+                        <Trash2 size={14} /> {deletingId === p.id ? '...' : 'Delete'}
+                      </button>
+                    </div>
+
+                    <button 
+                      onClick={() => openImageManager(p)}
+                      className="btn btn-secondary btn-sm" 
+                      style={{ width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontWeight: '600' }}
+                    >
+                      <Image size={14} /> Manage Photos ({imageCount})
                     </button>
                   </div>
-                  <button 
-                    onClick={() => openImageManager(p)}
-                    className="btn btn-secondary btn-sm" 
-                    style={{ width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
-                  >
-                    <Image size={14} /> Manage Images ({p.imageUrls ? splitImageUrls(p.imageUrls).length : 0})
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )
       ) : activeTab === 'bookings' ? (

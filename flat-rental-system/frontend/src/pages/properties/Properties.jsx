@@ -1,28 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api, { splitImageUrls } from '../../api/axiosConfig';
-import { Search, MapPin, Bed, Bath, IndianRupee, Home, X, Building2, SlidersHorizontal, Sparkles, Map as MapIcon, Grid, Compass, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import {
+  Search, MapPin, Bed, Bath, IndianRupee, Home, X, Building2, SlidersHorizontal,
+  Sparkles, Map as MapIcon, Grid, Compass, CheckCircle, AlertCircle, Camera,
+  RotateCcw, Shield, Check, Heart
+} from 'lucide-react';
 import { loadGoogleMapsScript } from '../../utils/googleMaps';
 import { loadLeafletScript, CITY_COORDINATES } from '../../utils/leafletMap';
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80';
 
+const PROPERTY_TYPE_LABELS = {
+  STUDIO: 'Studio',
+  ONE_BHK: '1 BHK',
+  TWO_BHK: '2 BHK',
+  THREE_BHK: '3 BHK',
+  VILLA: 'Villa',
+  PG: 'PG'
+};
+
 const Properties = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showFilters, setShowFilters] = useState(window.innerWidth > 900);
 
-  const [filters, setFilters] = useState({
+  // Initialize filters from URL search params
+  const [filters, setFilters] = useState(() => ({
     city: searchParams.get('city') || '',
     type: searchParams.get('type') || '',
     maxPrice: searchParams.get('maxPrice') || '',
     furnishing: searchParams.get('furnishing') || '',
-    bedrooms: '',
-    sort: 'newest'
-  });
+    bedrooms: searchParams.get('bedrooms') || '',
+    availableOnly: searchParams.get('available') !== 'all',
+    sort: searchParams.get('sort') || 'newest'
+  }));
 
   const [locationStatus, setLocationStatus] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'map'
@@ -44,6 +59,54 @@ const Properties = () => {
   const [estimatorError, setEstimatorError] = useState(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
+  const autocompleteInputRef = useRef(null);
+  const autocompleteRef = useRef(null);
+
+  const { user } = useAuth();
+  const [favorites, setFavorites] = useState([]);
+
+  useEffect(() => {
+    const key = `favorites_${user?.userId || user?.id || 'guest'}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        setFavorites(JSON.parse(saved));
+      } catch (e) {
+        setFavorites([]);
+      }
+    } else {
+      setFavorites([]);
+    }
+  }, [user]);
+
+  const toggleFavorite = (e, prop) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const key = `favorites_${user?.userId || user?.id || 'guest'}`;
+    let updated;
+    const exists = favorites.some(f => f.id === prop.id);
+    if (exists) {
+      updated = favorites.filter(f => f.id !== prop.id);
+    } else {
+      updated = [...favorites, prop];
+    }
+    setFavorites(updated);
+    localStorage.setItem(key, JSON.stringify(updated));
+  };
+
+  // Synchronize state back to URL query parameters
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filters.city.trim()) params.set('city', filters.city.trim());
+    if (filters.type) params.set('type', filters.type);
+    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+    if (filters.furnishing) params.set('furnishing', filters.furnishing);
+    if (filters.bedrooms) params.set('bedrooms', filters.bedrooms);
+    if (!filters.availableOnly) params.set('available', 'all');
+    if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
+
+    setSearchParams(params, { replace: true });
+  }, [filters, setSearchParams]);
 
   const calculateLocalRentEstimate = (form) => {
     const city = (form.city || '').trim().toLowerCase();
@@ -145,11 +208,8 @@ const Properties = () => {
       setEstimating(false);
     }
   };
-  const autocompleteInputRef = useRef(null);
-  const autocompleteRef = useRef(null);
 
   const detectLocation = async (isManualClick = false) => {
-    // If user has already entered something and it is not a manual click, do not overwrite!
     if (filters.city && !isManualClick) return;
 
     if (!navigator.geolocation) {
@@ -166,7 +226,6 @@ const Properties = () => {
         async (position) => {
           const { latitude, longitude } = position.coords;
           
-          // Helper for Nominatim fallback
           const runNominatimFallback = async () => {
             try {
               const response = await fetch(
@@ -222,7 +281,6 @@ const Properties = () => {
                   }
                 }
               } else {
-                console.warn("Google Geocoder failed or no results. Falling back to Nominatim.");
                 const success = await runNominatimFallback();
                 if (!success) {
                   setLocationStatus('geocoding_failed');
@@ -231,7 +289,6 @@ const Properties = () => {
               }
             });
           } catch (e) {
-            console.warn("Google Maps load failed. Falling back to Nominatim.");
             const success = await runNominatimFallback();
             if (!success) {
               setLocationStatus('geocoding_failed');
@@ -240,7 +297,6 @@ const Properties = () => {
           }
         },
         (error) => {
-          console.warn("Geolocation permission error: ", error);
           if (error.code === error.PERMISSION_DENIED) {
             setLocationStatus('denied');
           } else {
@@ -256,7 +312,6 @@ const Properties = () => {
     }
   };
 
-  // Run on mount
   useEffect(() => {
     detectLocation(false);
   }, []);
@@ -290,8 +345,8 @@ const Properties = () => {
           }
         });
       })
-      .catch((err) => {
-        console.log("Places Autocomplete not initialized: Maps API key missing or invalid.");
+      .catch(() => {
+        // Silently handled: user can type manually
       });
 
     return () => {
@@ -307,7 +362,7 @@ const Properties = () => {
       setProperties(res.data || []);
     } catch (err) {
       console.error("Fetch properties error:", err);
-      setError('Cannot connect to Backend API (http://localhost:8080/api/properties). Please make sure API Gateway (port 8080) and Property Service (port 8082) are running in IntelliJ and MySQL is started.');
+      setError('Cannot connect to Backend API (http://localhost:8080/api/properties). Please make sure API Gateway and Property Service are running.');
     } finally {
       setLoading(false);
     }
@@ -317,39 +372,67 @@ const Properties = () => {
     fetchProperties();
   }, []);
 
-  useEffect(() => {
-    let result = properties.filter(p => p.available !== false);
+  // Filter and sort properties with universal search matching
+  const filtered = useMemo(() => {
+    let result = [...properties];
 
-    if (filters.city) {
-      const q = filters.city.toLowerCase();
-      result = result.filter(p =>
-        (p.city && p.city.toLowerCase().includes(q)) ||
-        (p.locality && p.locality.toLowerCase().includes(q))
-      );
+    // Availability filter
+    if (filters.availableOnly) {
+      result = result.filter(p => p.available !== false);
     }
+
+    // Universal search: City, Locality, Address, Title, State
+    if (filters.city && filters.city.trim()) {
+      const q = filters.city.trim().toLowerCase();
+      const tokens = q.split(/\s+/).filter(Boolean);
+
+      result = result.filter(p => {
+        const title = (p.title || '').toLowerCase();
+        const city = (p.city || '').toLowerCase();
+        const locality = (p.locality || '').toLowerCase();
+        const address = (p.address || '').toLowerCase();
+        const state = (p.state || '').toLowerCase();
+        const full = `${title} ${city} ${locality} ${address} ${state}`;
+
+        // Either substring matches or all separate tokens match
+        return full.includes(q) || tokens.every(tok => full.includes(tok));
+      });
+    }
+
     if (filters.type) {
       result = result.filter(p => p.propertyType === filters.type);
     }
+
     if (filters.maxPrice) {
-      result = result.filter(p => p.rentAmount && parseFloat(p.rentAmount) <= parseFloat(filters.maxPrice));
-    }
-    if (filters.furnishing) {
-      result = result.filter(p => p.furnishing === filters.furnishing);
-    }
-    if (filters.bedrooms) {
-      const bedCount = parseInt(filters.bedrooms);
-      if (bedCount === 4) {
-        result = result.filter(p => p.bedrooms >= 4);
-      } else {
-        result = result.filter(p => p.bedrooms === bedCount);
+      const max = parseFloat(filters.maxPrice);
+      if (!isNaN(max) && max > 0) {
+        result = result.filter(p => p.rentAmount && parseFloat(p.rentAmount) <= max);
       }
     }
 
-    if (filters.sort === 'price-asc') result.sort((a, b) => a.rentAmount - b.rentAmount);
-    else if (filters.sort === 'price-desc') result.sort((a, b) => b.rentAmount - a.rentAmount);
-    else result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (filters.furnishing) {
+      result = result.filter(p => p.furnishing === filters.furnishing);
+    }
 
-    setFiltered(result);
+    if (filters.bedrooms) {
+      const bedCount = parseInt(filters.bedrooms);
+      if (bedCount === 4) {
+        result = result.filter(p => (p.bedrooms || 0) >= 4);
+      } else {
+        result = result.filter(p => (p.bedrooms || 0) === bedCount);
+      }
+    }
+
+    // Sorting
+    if (filters.sort === 'price-asc') {
+      result.sort((a, b) => (Number(a.rentAmount) || 0) - (Number(b.rentAmount) || 0));
+    } else if (filters.sort === 'price-desc') {
+      result.sort((a, b) => (Number(b.rentAmount) || 0) - (Number(a.rentAmount) || 0));
+    } else {
+      result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+
+    return result;
   }, [properties, filters]);
 
   // Leaflet Interactive Map Lifecycle
@@ -363,7 +446,6 @@ const Properties = () => {
       const container = document.getElementById('leaflet-map-container');
       if (!container) return;
 
-      // Determine center based on current city filter or first property
       let center = CITY_COORDINATES.bangalore;
       if (filters.city) {
         const cityKey = filters.city.trim().toLowerCase();
@@ -392,11 +474,9 @@ const Properties = () => {
         mapInstanceRef.current.invalidateSize();
       }
 
-      // Clear existing markers
       markersRef.current.forEach(m => m.remove());
       markersRef.current = [];
 
-      // Add markers for filtered properties
       filtered.forEach((p, idx) => {
         let lat = p.latitude;
         let lng = p.longitude;
@@ -409,7 +489,7 @@ const Properties = () => {
           lng = baseCoords[1] + radius * Math.sin(angle);
         }
 
-        const priceText = '₹' + Number(p.rentAmount).toLocaleString('en-IN');
+        const priceText = '₹' + Number(p.rentAmount || 0).toLocaleString('en-IN');
         const customIcon = L.divIcon({
           className: 'custom-property-pin',
           html: `<div style="
@@ -454,13 +534,39 @@ const Properties = () => {
     };
   }, [viewMode, filtered, filters.city]);
 
-  const clearFilters = () => setFilters({ city: '', type: '', maxPrice: '', furnishing: '', bedrooms: '', sort: 'newest' });
-  const hasFilters = filters.city || filters.type || filters.maxPrice || filters.furnishing || filters.bedrooms;
+  const clearFilters = () => setFilters({
+    city: '',
+    type: '',
+    maxPrice: '',
+    furnishing: '',
+    bedrooms: '',
+    availableOnly: true,
+    sort: 'newest'
+  });
+
+  const removeFilter = (key, fallbackVal = '') => {
+    setFilters(prev => ({ ...prev, [key]: fallbackVal }));
+  };
+
+  const hasActiveFilters = Boolean(
+    filters.city ||
+    filters.type ||
+    filters.maxPrice ||
+    filters.furnishing ||
+    filters.bedrooms ||
+    !filters.availableOnly
+  );
 
   const getFirstImage = (p) => {
     if (!p.imageUrls) return FALLBACK_IMG;
     const images = splitImageUrls(p.imageUrls);
     return images.length > 0 ? images[0] : FALLBACK_IMG;
+  };
+
+  const getImageCount = (p) => {
+    if (!p.imageUrls) return 1;
+    const images = splitImageUrls(p.imageUrls);
+    return Math.max(1, images.length);
   };
 
   const parseAmenities = (p) => {
@@ -479,12 +585,20 @@ const Properties = () => {
   // Loading skeleton
   if (loading) {
     return (
-      <div style={{ padding: '2rem', maxWidth: '1300px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '2rem' }}>Browse Properties</h1>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="glass-card" style={{ height: '380px', animation: 'pulse 1.5s infinite' }}></div>
-          ))}
+      <div style={{ padding: '2rem 1.5rem', maxWidth: '1300px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <div>
+            <div style={{ height: '32px', width: '240px', backgroundColor: 'var(--bg-card)', borderRadius: '8px', animation: 'pulse 1.5s infinite', marginBottom: '0.5rem' }}></div>
+            <div style={{ height: '18px', width: '140px', backgroundColor: 'var(--bg-card)', borderRadius: '6px', animation: 'pulse 1.5s infinite' }}></div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '2rem' }}>
+          <div style={{ width: '280px', height: '450px', backgroundColor: 'var(--bg-card)', borderRadius: '12px', animation: 'pulse 1.5s infinite' }}></div>
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="glass-card" style={{ height: '360px', animation: 'pulse 1.5s infinite', borderRadius: '12px' }}></div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -493,11 +607,11 @@ const Properties = () => {
   return (
     <div style={{ padding: '2rem 1.5rem', maxWidth: '1300px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.25rem' }}>Browse Properties</h1>
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.25rem' }}>Discover Properties</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-            {filtered.length} propert{filtered.length === 1 ? 'y' : 'ies'} found
+            Showing <strong>{filtered.length}</strong> of {properties.length} available listing{properties.length === 1 ? '' : 's'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -578,21 +692,199 @@ const Properties = () => {
         </div>
       </div>
 
+      {/* Active Filter Chips */}
+      {hasActiveFilters && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '0.5rem',
+          marginBottom: '1.5rem',
+          padding: '0.75rem 1rem',
+          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '10px'
+        }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <SlidersHorizontal size={13} /> Active Filters:
+          </span>
+
+          {filters.city && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.2rem 0.6rem',
+              backgroundColor: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              color: '#a5b4fc',
+              fontWeight: '600'
+            }}>
+              Search: "{filters.city}"
+              <button
+                type="button"
+                onClick={() => removeFilter('city')}
+                style={{ background: 'none', border: 'none', color: '#a5b4fc', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {filters.type && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.2rem 0.6rem',
+              backgroundColor: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              color: '#a5b4fc',
+              fontWeight: '600'
+            }}>
+              Type: {PROPERTY_TYPE_LABELS[filters.type] || filters.type}
+              <button
+                type="button"
+                onClick={() => removeFilter('type')}
+                style={{ background: 'none', border: 'none', color: '#a5b4fc', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {filters.maxPrice && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.2rem 0.6rem',
+              backgroundColor: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              color: '#a5b4fc',
+              fontWeight: '600'
+            }}>
+              Max: ₹{Number(filters.maxPrice).toLocaleString('en-IN')}/mo
+              <button
+                type="button"
+                onClick={() => removeFilter('maxPrice')}
+                style={{ background: 'none', border: 'none', color: '#a5b4fc', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {filters.furnishing && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.2rem 0.6rem',
+              backgroundColor: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              color: '#a5b4fc',
+              fontWeight: '600'
+            }}>
+              Furnishing: {filters.furnishing}
+              <button
+                type="button"
+                onClick={() => removeFilter('furnishing')}
+                style={{ background: 'none', border: 'none', color: '#a5b4fc', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {filters.bedrooms && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.2rem 0.6rem',
+              backgroundColor: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              color: '#a5b4fc',
+              fontWeight: '600'
+            }}>
+              Bedrooms: {filters.bedrooms === '4' ? '4+ BHK' : `${filters.bedrooms} BHK`}
+              <button
+                type="button"
+                onClick={() => removeFilter('bedrooms')}
+                style={{ background: 'none', border: 'none', color: '#a5b4fc', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          {!filters.availableOnly && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.2rem 0.6rem',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              color: '#fca5a5',
+              fontWeight: '600'
+            }}>
+              Showing All (Inc. Occupied)
+              <button
+                type="button"
+                onClick={() => removeFilter('availableOnly', true)}
+                style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+                <X size={13} />
+              </button>
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={clearFilters}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#f87171',
+              cursor: 'pointer',
+              fontSize: '0.78rem',
+              fontWeight: '700',
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem'
+            }}>
+            <RotateCcw size={12} /> Clear All
+          </button>
+        </div>
+      )}
+
       <div className="properties-container" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
         {/* Sidebar Filters */}
-        <div className="glass-card filters-sidebar" style={{ ...sidebarStyle, padding: '1.5rem' }}>
+        <div className="glass-card filters-sidebar" style={{ ...sidebarStyle, padding: '1.5rem', borderRadius: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontWeight: '700', fontSize: '1.1rem' }}>Filters</h3>
-            {hasFilters && (
+            <h3 style={{ fontWeight: '700', fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <SlidersHorizontal size={17} color="var(--primary)" /> Filters
+            </h3>
+            {hasActiveFilters && (
               <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>
-                Clear All
+                Reset
               </button>
             )}
           </div>
 
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-              <label className="form-label" style={{ margin: 0 }}>City / Locality</label>
+          {/* Universal Search Input */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label className="form-label" style={{ margin: 0, fontSize: '0.85rem', fontWeight: '600' }}>Search Location / Title</label>
               <button 
                 type="button" 
                 onClick={() => detectLocation(true)}
@@ -609,7 +901,7 @@ const Properties = () => {
                   gap: '3px'
                 }}
               >
-                <MapPin size={12} /> Use current location
+                <MapPin size={12} /> Detect
               </button>
             </div>
             <div style={{ position: 'relative' }}>
@@ -618,8 +910,8 @@ const Properties = () => {
                 ref={autocompleteInputRef}
                 type="text" 
                 className="form-control" 
-                placeholder="e.g. Mumbai"
-                style={{ paddingLeft: '2.25rem', paddingRight: '2rem' }}
+                placeholder="City, locality, title, address..."
+                style={{ paddingLeft: '2.25rem', paddingRight: '2rem', fontSize: '0.85rem' }}
                 value={filters.city} 
                 onChange={e => setFilters({...filters, city: e.target.value})} 
               />
@@ -657,17 +949,17 @@ const Properties = () => {
             )}
             {locationStatus === 'denied' && (
               <small style={{ color: '#fbbf24', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                Location permission denied. Please allow location access or search manually.
+                Location access denied. Please search manually.
               </small>
             )}
             {locationStatus === 'failed' && (
               <small style={{ color: '#f87171', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                Unable to detect your current location. Please allow location access or search manually.
+                Unable to detect location. Please enter city manually.
               </small>
             )}
             {locationStatus === 'geocoding_failed' && (
               <small style={{ color: '#f87171', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                Unable to determine city from your current location. Please search manually.
+                City could not be resolved from coordinates.
               </small>
             )}
             {locationStatus === 'notsupported' && (
@@ -677,9 +969,10 @@ const Properties = () => {
             )}
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Property Type</label>
-            <select className="form-select" value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})}>
+          {/* Property Type */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: '600' }}>Property Type</label>
+            <select className="form-select" value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})} style={{ fontSize: '0.85rem' }}>
               <option value="">All Types</option>
               <option value="STUDIO">Studio</option>
               <option value="ONE_BHK">1 BHK</option>
@@ -690,15 +983,24 @@ const Properties = () => {
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Max Rent (₹/month)</label>
-            <input type="number" className="form-control" placeholder="e.g. 25000"
-              value={filters.maxPrice} onChange={e => setFilters({...filters, maxPrice: e.target.value})} />
+          {/* Max Rent */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: '600' }}>Max Rent (₹/month)</label>
+            <input
+              type="number"
+              className="form-control"
+              placeholder="e.g. 35000"
+              min="0"
+              style={{ fontSize: '0.85rem' }}
+              value={filters.maxPrice}
+              onChange={e => setFilters({...filters, maxPrice: e.target.value})}
+            />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Furnishing</label>
-            <select className="form-select" value={filters.furnishing} onChange={e => setFilters({...filters, furnishing: e.target.value})}>
+          {/* Furnishing */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: '600' }}>Furnishing Status</label>
+            <select className="form-select" value={filters.furnishing} onChange={e => setFilters({...filters, furnishing: e.target.value})} style={{ fontSize: '0.85rem' }}>
               <option value="">Any</option>
               <option value="Furnished">Furnished</option>
               <option value="Semi-Furnished">Semi-Furnished</option>
@@ -706,15 +1008,32 @@ const Properties = () => {
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Bedrooms</label>
-            <select className="form-select" value={filters.bedrooms} onChange={e => setFilters({...filters, bedrooms: e.target.value})}>
+          {/* Bedrooms */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: '600' }}>Bedrooms</label>
+            <select className="form-select" value={filters.bedrooms} onChange={e => setFilters({...filters, bedrooms: e.target.value})} style={{ fontSize: '0.85rem' }}>
               <option value="">Any</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4+</option>
+              <option value="1">1 BHK</option>
+              <option value="2">2 BHK</option>
+              <option value="3">3 BHK</option>
+              <option value="4">4+ BHK</option>
             </select>
+          </div>
+
+          {/* Availability Toggle */}
+          <div className="form-group" style={{ marginBottom: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)' }}>
+              <input
+                type="checkbox"
+                checked={filters.availableOnly}
+                onChange={e => setFilters(prev => ({ ...prev, availableOnly: e.target.checked }))}
+                style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+              />
+              Available for Booking Only
+            </label>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem', marginLeft: '1.6rem' }}>
+              Hide occupied/unavailable flats
+            </span>
           </div>
         </div>
 
@@ -740,71 +1059,178 @@ const Properties = () => {
             <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '1.05rem', color: 'var(--text-main)' }}>
-                  <Compass size={18} color="var(--primary)" /> Interactive Map Explorer ({filtered.length} properties plotted)
+                  <Compass size={18} color="var(--primary)" /> Interactive Map Explorer ({filtered.length} plotted)
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Click any interactive price tag to view photos & rental details
+                  Click price tags to preview property photos & specs
                 </div>
               </div>
               <div id="leaflet-map-container" style={{ height: '580px', width: '100%', borderRadius: '10px', zIndex: 1 }}></div>
             </div>
           ) : filtered.length === 0 && !loading ? (
-            <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-              <Home size={64} color="var(--text-muted)" style={{ marginBottom: '1.5rem', opacity: 0.4 }} />
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>No properties found</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Try adjusting your filters to see more results.</p>
-              {hasFilters && <button className="btn btn-primary" onClick={clearFilters}>Clear Filters</button>}
+            /* Intelligent Empty / Contradictory State */
+            <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: '16px' }}>
+              <Home size={60} color="var(--text-muted)" style={{ marginBottom: '1.25rem', opacity: 0.4 }} />
+              <h3 style={{ fontSize: '1.35rem', fontWeight: '800', marginBottom: '0.5rem' }}>No Matching Properties Found</h3>
+              <p style={{ color: 'var(--text-muted)', maxWidth: '500px', margin: '0 auto 1.75rem auto', lineHeight: '1.5', fontSize: '0.9rem' }}>
+                {filters.city && filters.maxPrice ? (
+                  <>We couldn't find listings in <strong>"{filters.city}"</strong> with monthly rent under <strong>₹{Number(filters.maxPrice).toLocaleString('en-IN')}</strong>.</>
+                ) : filters.city ? (
+                  <>No listings matched <strong>"{filters.city}"</strong>. Try checking the spelling, or search across broader localities.</>
+                ) : (
+                  <>Your current filter criteria didn't match any available listings. Try expanding your search options.</>
+                )}
+              </p>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {filters.maxPrice && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => removeFilter('maxPrice')}>
+                    Remove Price Filter
+                  </button>
+                )}
+                {filters.city && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => removeFilter('city')}>
+                    Search All Cities
+                  </button>
+                )}
+                {!filters.availableOnly && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => removeFilter('availableOnly', true)}>
+                    Filter Available Only
+                  </button>
+                )}
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={clearFilters}>
+                    Reset All Filters
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '1.5rem' }}>
               {filtered.map(property => {
                 const amenities = parseAmenities(property);
+                const imageCount = getImageCount(property);
+                const isAvailable = property.available !== false;
+
                 return (
                   <Link to={`/properties/${property.id}`} key={property.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <div className="glass-card property-card" style={{ overflow: 'hidden', transition: 'transform 0.25s ease, box-shadow 0.25s ease', cursor: 'pointer' }}
+                    <div className="glass-card property-card" style={{ overflow: 'hidden', transition: 'transform 0.25s ease, box-shadow 0.25s ease', cursor: 'pointer', borderRadius: '14px', height: '100%', display: 'flex', flexDirection: 'column' }}
                       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)'; }}
                       onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = ''; }}>
-                      {/* Image */}
-                      <div style={{ position: 'relative', height: '200px', overflow: 'hidden' }}>
+                      
+                      {/* Image & Badges */}
+                      <div style={{ position: 'relative', height: '210px', overflow: 'hidden', backgroundColor: '#0f172a' }}>
                         <img src={getFirstImage(property)} alt={property.title}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           onError={e => { e.target.src = FALLBACK_IMG; }} />
-                        <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+
+                        {/* Top Left: Property Type */}
+                        <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                           <span style={{
                             padding: '0.25rem 0.65rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700',
-                            backgroundColor: 'rgba(99, 102, 241, 0.9)', color: 'white', backdropFilter: 'blur(4px)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.9)', color: 'white', backdropFilter: 'blur(6px)',
                             textTransform: 'uppercase', letterSpacing: '0.03em'
                           }}>
-                            {(property.propertyType || '').replace('_', ' ')}
+                            {PROPERTY_TYPE_LABELS[property.propertyType] || (property.propertyType || '').replace('_', ' ')}
                           </span>
+
+                          {!isAvailable && (
+                            <span style={{
+                              padding: '0.25rem 0.65rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700',
+                              backgroundColor: 'rgba(239, 68, 68, 0.95)', color: 'white', backdropFilter: 'blur(6px)'
+                            }}>
+                              Unavailable
+                            </span>
+                          )}
                         </div>
+
+                        {/* Top Right: Photo Count Badge & Heart Button */}
+                        <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', zIndex: 3 }}>
+                          {imageCount > 1 && (
+                            <div style={{
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: '700',
+                              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                              color: '#ffffff',
+                              backdropFilter: 'blur(6px)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
+                            }}>
+                              <Camera size={13} /> {imageCount} photos
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => toggleFavorite(e, property)}
+                            title={favorites.some(f => f.id === property.id) ? "Remove from Saved" : "Save Flat"}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                              backdropFilter: 'blur(6px)',
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              color: favorites.some(f => f.id === property.id) ? '#ef4444' : '#ffffff',
+                              transition: 'transform 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1.0)'}
+                          >
+                            <Heart size={15} fill={favorites.some(f => f.id === property.id) ? '#ef4444' : 'none'} />
+                          </button>
+                        </div>
+
+                        {/* Bottom Right: Furnishing Status */}
                         {property.furnishing && (
                           <span style={{
                             position: 'absolute', bottom: '0.75rem', right: '0.75rem',
                             padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '600',
-                            backgroundColor: 'rgba(0,0,0,0.65)', color: '#e2e8f0', backdropFilter: 'blur(4px)'
+                            backgroundColor: 'rgba(0,0,0,0.7)', color: '#e2e8f0', backdropFilter: 'blur(6px)'
                           }}>
                             {property.furnishing}
                           </span>
                         )}
                       </div>
 
-                      {/* Info */}
-                      <div style={{ padding: '1.25rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {/* Info Body */}
+                      <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={property.title}>
                           {property.title}
                         </h3>
+                        
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-                          <MapPin size={13} />
-                          {property.locality ? `${property.locality}, ` : ''}{property.city}
+                          <MapPin size={14} style={{ flexShrink: 0 }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {property.locality ? `${property.locality}, ` : ''}{property.city || 'Location N/A'}
+                          </span>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '1rem' }}>
+                        {/* Specs */}
+                        <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
-                            <Bed size={15} /> {property.bedrooms} Bed
+                            <Bed size={15} /> {property.bedrooms || 1} Bed
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
-                            <Bath size={15} /> {property.bathrooms} Bath
+                            <Bath size={15} /> {property.bathrooms || 1} Bath
                           </span>
                           {property.area && (
                             <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -813,6 +1239,7 @@ const Properties = () => {
                           )}
                         </div>
 
+                        {/* Amenities Chips */}
                         {amenities.length > 0 && (
                           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                             {amenities.slice(0, 3).map((a, i) => (
@@ -829,12 +1256,23 @@ const Properties = () => {
                           </div>
                         )}
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
-                          <span style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--primary)', display: 'flex', alignItems: 'center' }}>
-                            <IndianRupee size={16} />{Number(property.rentAmount).toLocaleString('en-IN')}
-                            <span style={{ fontSize: '0.75rem', fontWeight: '400', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>/mo</span>
+                        {/* Footer: Price + Deposit + Action */}
+                        <div style={{ marginTop: 'auto', paddingTop: '0.85rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--primary)', display: 'flex', alignItems: 'center' }}>
+                              <IndianRupee size={16} />{Number(property.rentAmount || 0).toLocaleString('en-IN')}
+                              <span style={{ fontSize: '0.75rem', fontWeight: '400', color: 'var(--text-muted)', marginLeft: '0.2rem' }}>/mo</span>
+                            </span>
+                            {property.securityDeposit && Number(property.securityDeposit) > 0 && (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.1rem' }}>
+                                Deposit: ₹{Number(property.securityDeposit).toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <span className={`btn btn-sm ${isAvailable ? 'btn-primary' : 'btn-secondary'}`} style={{ fontWeight: '600' }}>
+                            View Details
                           </span>
-                          <span className="btn btn-primary btn-sm">View</span>
                         </div>
                       </div>
                     </div>

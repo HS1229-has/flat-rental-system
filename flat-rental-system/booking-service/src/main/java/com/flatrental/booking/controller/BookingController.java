@@ -60,8 +60,10 @@ public class BookingController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> cancelBooking(@PathVariable Long id, @RequestParam(required = false) String reason) {
-        bookingService.cancelBooking(id, reason);
+    public ResponseEntity<Void> cancelBooking(@PathVariable Long id,
+                                              @RequestParam(required = false) String reason,
+                                              @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+        bookingService.cancelBooking(id, reason, currentUserId);
         return ResponseEntity.noContent().build();
     }
 
@@ -168,7 +170,9 @@ public class BookingController {
     }
 
     @GetMapping("/tenant/{tenantId}/kyc-status")
-    public ResponseEntity<TenantKycResponse> getTenantKycStatus(@PathVariable Long tenantId) {
-        return ResponseEntity.ok(bookingService.getTenantKycStatus(tenantId));
+    public ResponseEntity<TenantKycResponse> getTenantKycStatus(
+            @PathVariable Long tenantId,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+        return ResponseEntity.ok(bookingService.getTenantKycStatus(tenantId, currentUserId));
     }
 }

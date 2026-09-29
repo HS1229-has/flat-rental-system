@@ -26,6 +26,7 @@ public class BookingService {
     private final com.flatrental.booking.repository.OwnerContactShareRepository ownerContactShareRepository;
     private final PoliceVerificationRepository policeVerificationRepository;
     private final PoliceVerificationProvider policeVerificationProvider;
+    private final com.flatrental.booking.repository.TenantKycRecordRepository tenantKycRecordRepository;
 
     public BookingService(BookingRepository bookingRepository,
                           TenantVerificationRepository tenantVerificationRepository,
@@ -33,7 +34,8 @@ public class BookingService {
                           PropertyClient propertyClient,
                           com.flatrental.booking.repository.OwnerContactShareRepository ownerContactShareRepository,
                           PoliceVerificationRepository policeVerificationRepository,
-                          PoliceVerificationProvider policeVerificationProvider) {
+                          PoliceVerificationProvider policeVerificationProvider,
+                          com.flatrental.booking.repository.TenantKycRecordRepository tenantKycRecordRepository) {
         this.bookingRepository = bookingRepository;
         this.tenantVerificationRepository = tenantVerificationRepository;
         this.meetupRequestRepository = meetupRequestRepository;
@@ -41,6 +43,7 @@ public class BookingService {
         this.ownerContactShareRepository = ownerContactShareRepository;
         this.policeVerificationRepository = policeVerificationRepository;
         this.policeVerificationProvider = policeVerificationProvider;
+        this.tenantKycRecordRepository = tenantKycRecordRepository;
     }
 
     @Transactional
@@ -55,6 +58,33 @@ public class BookingService {
 
         if (!request.getEndDate().isAfter(request.getStartDate())) {
             throw new InvalidBookingException("End date must be after start date");
+        }
+
+        // Validate property existence, availability, and prevent owner self-booking
+        if (request.getPropertyId() != null) {
+            PropertyDto property = propertyClient.getPropertyById(request.getPropertyId());
+            if (property == null) {
+                throw new ResourceNotFoundException("Property not found with id: " + request.getPropertyId());
+            }
+            if (!property.isAvailable()) {
+                throw new InvalidBookingException("This property is currently unavailable for booking.");
+            }
+            if (property.getOwnerId() != null && property.getOwnerId().equals(tenantId)) {
+                throw new InvalidBookingException("Property owners cannot apply or book their own listings.");
+            }
+
+            // Prevent duplicate active booking for the same property
+            List<Booking> tenantBookings = bookingRepository.findByTenantId(tenantId);
+            boolean hasActiveBooking = tenantBookings.stream().anyMatch(b ->
+                    b.getPropertyId().equals(request.getPropertyId()) &&
+                    b.getStatus() != BookingStatus.CANCELLED &&
+                    b.getStatus() != BookingStatus.DECLINED &&
+                    b.getStatus() != BookingStatus.REJECTED &&
+                    b.getStatus() != BookingStatus.COMPLETED
+            );
+            if (hasActiveBooking) {
+                throw new InvalidBookingException("You already have an active application or booking for this property.");
+            }
         }
 
         BookingStatus initialStatus = BookingStatus.APPLICATION_DRAFT;
@@ -123,9 +153,22 @@ public class BookingService {
 
     @Transactional
     public void cancelBooking(Long id, String reason) {
+        cancelBooking(id, reason, null);
+    }
+
+    @Transactional
+    public void cancelBooking(Long id, String reason, Long currentUserId) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
-        
+
+        if (currentUserId != null && !booking.getTenantId().equals(currentUserId)) {
+            PropertyDto property = propertyClient.getPropertyById(booking.getPropertyId());
+            boolean isOwner = property != null && property.getOwnerId().equals(currentUserId);
+            if (!isOwner) {
+                throw new InvalidBookingException("Access denied: You can only cancel your own booking.");
+            }
+        }
+
         validateStateTransition(booking.getStatus(), BookingStatus.CANCELLED);
         booking.setStatus(BookingStatus.CANCELLED);
         if (reason != null && !reason.trim().isEmpty()) {
@@ -608,14 +651,16 @@ public class BookingService {
     }
 
     /**
-     * Automated Real-Time Tenant KYC & Background Verification API
-     * Validates Aadhaar (12-digit format), PAN Card format, and computes CIBIL credit score.
+     * Tenant KYC & Background Verification Simulation API
+     * Validates Aadhaar (12-digit format), PAN Card format, and computes demo credit score.
+     * Clearly marked as sandbox / simulation to avoid misrepresenting real UIDAI / CIBIL queries.
      */
+    @Transactional
     public TenantKycResponse verifyTenantKyc(Long tenantId, TenantKycRequest request, Long currentUserId) {
         if (request == null) {
             throw new InvalidBookingException("KYC verification request cannot be null");
         }
-        if (!tenantId.equals(currentUserId)) {
+        if (currentUserId == null || !tenantId.equals(currentUserId)) {
             throw new InvalidBookingException("Access denied: You can only verify your own KYC credentials.");
         }
 
@@ -633,7 +678,7 @@ public class BookingService {
         }
         String maskedPan = pan.substring(0, 2) + "******" + pan.substring(8);
 
-        // 3. Algorithmic CIBIL Credit Score Calculation based on PAN checksum & Income
+        // 3. Algorithmic Credit Score Calculation - explicitly labeled Demo / Simulation
         int baseCibil = 750;
         int panHash = Math.abs(pan.hashCode()) % 100;
         int calculatedCibil = Math.min(880, Math.max(680, baseCibil + (panHash / 3)));
@@ -644,10 +689,29 @@ public class BookingService {
         String creditRating = calculatedCibil >= 750 ? "EXCELLENT" : (calculatedCibil >= 700 ? "GOOD" : "AVERAGE");
         String riskLevel = calculatedCibil >= 750 ? "LOW" : "MODERATE";
 
-        String refNum = "KYC-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 9000 + 1000);
+        String refNum = "SIM-KYC-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 9000 + 1000);
 
-        String summary = String.format("Government KYC Verified. Identity confirmed via Aadhaar (%s) and Income Tax PAN (%s). CIBIL Credit Score: %d (%s). Risk Rating: %s.",
-                maskedAadhaar, maskedPan, calculatedCibil, creditRating, riskLevel);
+        String summary = String.format("[Demo / Simulation] Format verification completed for Aadhaar (%s) and Income Tax PAN (%s). Simulated credit rating: %s (%d). This is an algorithmic sandbox check and does not contact live government or credit bureaus.",
+                maskedAadhaar, maskedPan, creditRating, calculatedCibil);
+
+        TenantKycRecord record = tenantKycRecordRepository.findByTenantId(tenantId)
+                .orElse(new TenantKycRecord());
+        record.setTenantId(tenantId);
+        record.setFullName(request.getFullName());
+        record.setAadhaarMasked(maskedAadhaar);
+        record.setPanMasked(maskedPan);
+        record.setCompanyName(request.getCompanyName() != null ? request.getCompanyName() : "Verified Employer");
+        record.setMonthlyIncome(request.getMonthlyIncome());
+        record.setCibilScore(calculatedCibil);
+        record.setCreditRating(creditRating);
+        record.setKycStatus("VERIFIED");
+        record.setRiskLevel(riskLevel);
+        record.setReferenceNumber(refNum);
+        record.setSummary(summary);
+        record.setIsSimulation(true);
+        record.setVerifiedAt(LocalDateTime.now());
+
+        tenantKycRecordRepository.save(record);
 
         return TenantKycResponse.builder()
                 .tenantId(tenantId)
@@ -657,30 +721,46 @@ public class BookingService {
                 .cibilScore(calculatedCibil)
                 .creditRating(creditRating)
                 .employmentVerified(true)
-                .companyName(request.getCompanyName() != null ? request.getCompanyName() : "Verified Employer")
+                .companyName(record.getCompanyName())
                 .kycStatus("VERIFIED")
                 .riskLevel(riskLevel)
                 .referenceNumber(refNum)
-                .verifiedAt(LocalDateTime.now())
+                .verifiedAt(record.getVerifiedAt())
                 .summary(summary)
+                .isSimulation(true)
                 .build();
     }
 
     public TenantKycResponse getTenantKycStatus(Long tenantId) {
-        return TenantKycResponse.builder()
-                .tenantId(tenantId)
-                .fullName("Tenant #" + tenantId)
-                .aadhaarMasked("XXXX-XXXX-8921")
-                .panMasked("AB******1F")
-                .cibilScore(782)
-                .creditRating("EXCELLENT")
-                .employmentVerified(true)
-                .companyName("Verified Professional")
-                .kycStatus("VERIFIED")
-                .riskLevel("LOW")
-                .referenceNumber("KYC-SYS-" + tenantId)
-                .verifiedAt(LocalDateTime.now())
-                .summary("Instant Background Check Verified: High Creditworthiness & Zero Default Record.")
-                .build();
+        return getTenantKycStatus(tenantId, null);
+    }
+
+    public TenantKycResponse getTenantKycStatus(Long tenantId, Long currentUserId) {
+        if (currentUserId != null && !tenantId.equals(currentUserId)) {
+            throw new InvalidBookingException("Access denied: You can only view your own verification status.");
+        }
+        return tenantKycRecordRepository.findByTenantId(tenantId)
+                .map(r -> TenantKycResponse.builder()
+                        .tenantId(r.getTenantId())
+                        .fullName(r.getFullName())
+                        .aadhaarMasked(r.getAadhaarMasked())
+                        .panMasked(r.getPanMasked())
+                        .cibilScore(r.getCibilScore())
+                        .creditRating(r.getCreditRating())
+                        .employmentVerified(true)
+                        .companyName(r.getCompanyName())
+                        .kycStatus(r.getKycStatus())
+                        .riskLevel(r.getRiskLevel())
+                        .referenceNumber(r.getReferenceNumber())
+                        .verifiedAt(r.getVerifiedAt())
+                        .summary(r.getSummary())
+                        .isSimulation(true)
+                        .build())
+                .orElseGet(() -> TenantKycResponse.builder()
+                        .tenantId(tenantId)
+                        .kycStatus("NOT_STARTED")
+                        .summary("No verification simulation on record. You can run the interactive simulation to prepare your tenant credentials.")
+                        .isSimulation(true)
+                        .build());
     }
 }

@@ -12,18 +12,20 @@ public class TenantKycResponse {
     private String creditRating;
     private boolean employmentVerified;
     private String companyName;
-    private String kycStatus; // "VERIFIED", "PENDING", "REJECTED"
+    private String kycStatus; // "NOT_STARTED", "VERIFIED", "REJECTED"
     private String riskLevel; // "LOW", "MODERATE", "HIGH"
     private String referenceNumber;
     private LocalDateTime verifiedAt;
     private String summary;
+    private Boolean isSimulation = true;
 
     public TenantKycResponse() {}
 
     public TenantKycResponse(Long tenantId, String fullName, String aadhaarMasked, String panMasked,
                              Integer cibilScore, String creditRating, boolean employmentVerified,
                              String companyName, String kycStatus, String riskLevel,
-                             String referenceNumber, LocalDateTime verifiedAt, String summary) {
+                             String referenceNumber, LocalDateTime verifiedAt, String summary,
+                             Boolean isSimulation) {
         this.tenantId = tenantId;
         this.fullName = fullName;
         this.aadhaarMasked = aadhaarMasked;
@@ -37,6 +39,7 @@ public class TenantKycResponse {
         this.referenceNumber = referenceNumber;
         this.verifiedAt = verifiedAt;
         this.summary = summary;
+        this.isSimulation = isSimulation != null ? isSimulation : true;
     }
 
     public static Builder builder() {
@@ -57,6 +60,7 @@ public class TenantKycResponse {
         private String referenceNumber;
         private LocalDateTime verifiedAt;
         private String summary;
+        private Boolean isSimulation = true;
 
         public Builder tenantId(Long val) { this.tenantId = val; return this; }
         public Builder fullName(String val) { this.fullName = val; return this; }
@@ -71,11 +75,12 @@ public class TenantKycResponse {
         public Builder referenceNumber(String val) { this.referenceNumber = val; return this; }
         public Builder verifiedAt(LocalDateTime val) { this.verifiedAt = val; return this; }
         public Builder summary(String val) { this.summary = val; return this; }
+        public Builder isSimulation(Boolean val) { this.isSimulation = val; return this; }
 
         public TenantKycResponse build() {
             return new TenantKycResponse(tenantId, fullName, aadhaarMasked, panMasked, cibilScore,
                     creditRating, employmentVerified, companyName, kycStatus, riskLevel,
-                    referenceNumber, verifiedAt, summary);
+                    referenceNumber, verifiedAt, summary, isSimulation);
         }
     }
 
@@ -117,4 +122,7 @@ public class TenantKycResponse {
 
     public String getSummary() { return summary; }
     public void setSummary(String summary) { this.summary = summary; }
+
+    public Boolean getIsSimulation() { return isSimulation; }
+    public void setIsSimulation(Boolean isSimulation) { this.isSimulation = isSimulation; }
 }

@@ -28,26 +28,27 @@ public class PropertyService {
     @Transactional
     @CacheEvict(value = {"properties", "property"}, allEntries = true)
     public PropertyResponse createProperty(PropertyRequest request, Long ownerId) {
+        boolean isAvailable = request.getAvailable() != null ? request.getAvailable() : true;
         Property property = Property.builder()
                 .ownerId(ownerId)
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .address(request.getAddress())
-                .city(request.getCity())
+                .title(sanitize(request.getTitle()))
+                .description(request.getDescription() != null ? request.getDescription().trim() : null)
+                .address(sanitize(request.getAddress()))
+                .city(sanitize(request.getCity()))
                 .rentAmount(request.getRentAmount())
                 .propertyType(request.getPropertyType())
-                .bedrooms(request.getBedrooms())
-                .bathrooms(request.getBathrooms())
-                .locality(request.getLocality())
+                .bedrooms(request.getBedrooms() != null ? request.getBedrooms() : 1)
+                .bathrooms(request.getBathrooms() != null ? request.getBathrooms() : 1)
+                .locality(sanitize(request.getLocality()))
                 .furnishing(request.getFurnishing())
                 .area(request.getArea())
                 .securityDeposit(request.getSecurityDeposit())
                 .imageUrls(request.getImageUrls())
                 .amenities(request.getAmenities())
-                .state(request.getState())
+                .state(sanitize(request.getState()))
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
-                .available(true)
+                .available(isAvailable)
                 .build();
 
         Property saved = propertyRepository.save(property);
@@ -100,28 +101,47 @@ public class PropertyService {
             throw new UnauthorizedActionException("Unauthorized: You do not own this property.");
         }
 
-        property.setTitle(request.getTitle());
-        property.setDescription(request.getDescription());
-        property.setAddress(request.getAddress());
-        property.setCity(request.getCity());
+        property.setTitle(sanitize(request.getTitle()));
+        property.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
+        property.setAddress(sanitize(request.getAddress()));
+        property.setCity(sanitize(request.getCity()));
         property.setRentAmount(request.getRentAmount());
         property.setPropertyType(request.getPropertyType());
-        property.setBedrooms(request.getBedrooms());
-        property.setBathrooms(request.getBathrooms());
-        property.setLocality(request.getLocality());
+        if (request.getBedrooms() != null) property.setBedrooms(request.getBedrooms());
+        if (request.getBathrooms() != null) property.setBathrooms(request.getBathrooms());
+        property.setLocality(sanitize(request.getLocality()));
         property.setFurnishing(request.getFurnishing());
         property.setArea(request.getArea());
         property.setSecurityDeposit(request.getSecurityDeposit());
+        if (request.getAvailable() != null) {
+            property.setAvailable(request.getAvailable());
+        }
         
         // Resolve updated images to restore original base64 from lightweight references if they were kept
         String resolvedImages = resolveUpdatedImageUrls(request.getImageUrls(), property.getImageUrls());
         property.setImageUrls(resolvedImages);
         
         property.setAmenities(request.getAmenities());
-        property.setState(request.getState());
+        property.setState(sanitize(request.getState()));
         property.setLatitude(request.getLatitude());
         property.setLongitude(request.getLongitude());
 
+        Property updated = propertyRepository.save(property);
+        return toListResponse(updated);
+    }
+
+    @Transactional
+    @CacheEvict(value = {"properties", "property"}, allEntries = true)
+    public PropertyResponse toggleAvailability(Long id, Long currentUserId, Boolean available) {
+        Property property = propertyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Property not found with id: " + id));
+
+        if (!property.getOwnerId().equals(currentUserId)) {
+            throw new UnauthorizedActionException("Unauthorized: You do not own this property.");
+        }
+
+        boolean newStatus = available != null ? available : !property.isAvailable();
+        property.setAvailable(newStatus);
         Property updated = propertyRepository.save(property);
         return toListResponse(updated);
     }
@@ -136,6 +156,11 @@ public class PropertyService {
             throw new UnauthorizedActionException("Unauthorized: You do not own this property.");
         }
         propertyRepository.delete(property);
+    }
+
+    private String sanitize(String input) {
+        if (input == null) return null;
+        return input.replaceAll("<[^>]*>", "").trim();
     }
 
     /**
@@ -189,18 +214,19 @@ public class PropertyService {
     private PropertyResponse toListResponse(Property property) {
         String imageUrls = property.getImageUrls();
 
-        if (imageUrls != null && imageUrls.startsWith("data:image")) {
+        if (imageUrls != null && imageUrls.contains("data:image")) {
             String[] images = imageUrls.contains("|") ? imageUrls.split("\\|") : new String[]{imageUrls};
-            if (images.length == 1) {
-                imageUrls = "/api/properties/" + property.getId() + "/image";
-            } else {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < images.length; i++) {
-                    if (i > 0) sb.append("|");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < images.length; i++) {
+                if (i > 0) sb.append("|");
+                String img = images[i].trim();
+                if (img.startsWith("data:image")) {
                     sb.append("/api/properties/").append(property.getId()).append("/image?index=").append(i);
+                } else {
+                    sb.append(img);
                 }
-                imageUrls = sb.toString();
             }
+            imageUrls = sb.toString();
         }
 
         return PropertyResponse.builder()

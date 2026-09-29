@@ -58,6 +58,9 @@ class BookingServiceTest {
     @Mock
     private PoliceVerificationProvider policeVerificationProvider;
 
+    @Mock
+    private com.flatrental.booking.repository.TenantKycRecordRepository tenantKycRecordRepository;
+
     @InjectMocks
     private BookingService bookingService;
 
@@ -73,6 +76,10 @@ class BookingServiceTest {
                 .endDate(LocalDate.of(2026, 9, 30))
                 .status(BookingStatus.APPLICATION_DRAFT)
                 .build();
+
+        lenient().when(propertyClient.getPropertyById(100L)).thenReturn(
+                new PropertyDto(100L, 50L, "Sample Flat", new java.math.BigDecimal("25000"), true)
+        );
     }
 
     @Test
@@ -302,5 +309,71 @@ class BookingServiceTest {
 
         assertThrows(InvalidBookingException.class,
                 () -> bookingService.verifyTenantKyc(200L, kycReq, 999L));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when attempting to book an unavailable property")
+    void testCreateBooking_PropertyUnavailable_ThrowsException() {
+        when(propertyClient.getPropertyById(101L)).thenReturn(
+                new PropertyDto(101L, 50L, "Paused Flat", new java.math.BigDecimal("25000"), false)
+        );
+
+        BookingRequest request = new BookingRequest();
+        request.setPropertyId(101L);
+        request.setStartDate(LocalDate.of(2026, 9, 1));
+        request.setEndDate(LocalDate.of(2026, 9, 30));
+
+        assertThrows(InvalidBookingException.class, () -> bookingService.createBooking(request, 200L));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when property owner attempts to book own property")
+    void testCreateBooking_OwnerSelfBooking_ThrowsException() {
+        when(propertyClient.getPropertyById(102L)).thenReturn(
+                new PropertyDto(102L, 200L, "Owner's Own Flat", new java.math.BigDecimal("25000"), true)
+        );
+
+        BookingRequest request = new BookingRequest();
+        request.setPropertyId(102L);
+        request.setStartDate(LocalDate.of(2026, 9, 1));
+        request.setEndDate(LocalDate.of(2026, 9, 30));
+
+        assertThrows(InvalidBookingException.class, () -> bookingService.createBooking(request, 200L));
+    }
+
+    @Test
+    @DisplayName("Should allow tenant to cancel their own booking")
+    void testCancelBooking_ByTenant_Success() {
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(sampleBooking));
+
+        bookingService.cancelBooking(1L, "Change of plans", 200L);
+
+        assertEquals(BookingStatus.CANCELLED, sampleBooking.getStatus());
+        assertEquals("Change of plans", sampleBooking.getCancellationReason());
+        verify(bookingRepository, times(1)).save(sampleBooking);
+    }
+
+    @Test
+    @DisplayName("Should reject cancellation when attempted by unauthorized user")
+    void testCancelBooking_Unauthorized_ThrowsException() {
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(sampleBooking));
+        when(propertyClient.getPropertyById(100L)).thenReturn(
+                new PropertyDto(100L, 50L, "Sample Flat", new java.math.BigDecimal("25000"), true)
+        );
+
+        assertThrows(InvalidBookingException.class, () -> bookingService.cancelBooking(1L, "Unauthorized cancel", 999L));
+    }
+
+    @Test
+    @DisplayName("Should return NOT_STARTED when tenant has not submitted KYC simulation")
+    void testGetTenantKycStatus_NotStarted() {
+        when(tenantKycRecordRepository.findByTenantId(500L)).thenReturn(Optional.empty());
+
+        TenantKycResponse response = bookingService.getTenantKycStatus(500L, 500L);
+
+        assertNotNull(response);
+        assertEquals("NOT_STARTED", response.getKycStatus());
+        assertNull(response.getAadhaarMasked());
+        assertNull(response.getCibilScore());
     }
 }

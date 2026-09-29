@@ -66,6 +66,13 @@ public class PropertyController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/availability")
+    public ResponseEntity<PropertyResponse> toggleAvailability(@PathVariable Long id,
+                                                               @RequestParam(required = false) Boolean available,
+                                                               @RequestHeader("X-User-Id") Long currentUserId) {
+        return ResponseEntity.ok(propertyService.toggleAvailability(id, currentUserId, available));
+    }
+
     /**
      * Serve the first image for a property as a binary image response.
      * Handles base64 data URIs stored in imageUrls.

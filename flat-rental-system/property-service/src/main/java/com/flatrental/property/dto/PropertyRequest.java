@@ -1,52 +1,69 @@
 package com.flatrental.property.dto;
 
 import com.flatrental.property.entity.PropertyType;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 
 public class PropertyRequest {
 
     @NotBlank(message = "Title is required")
+    @Size(min = 3, max = 150, message = "Title must be between 3 and 150 characters")
     private String title;
 
+    @Size(max = 2000, message = "Description cannot exceed 2000 characters")
     private String description;
 
     @NotBlank(message = "Address is required")
+    @Size(min = 3, max = 255, message = "Address must be between 3 and 255 characters")
     private String address;
 
     @NotBlank(message = "City is required")
+    @Size(min = 2, max = 100, message = "City must be between 2 and 100 characters")
     private String city;
 
     @NotNull(message = "Rent amount is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Rent amount must be greater than 0")
+    @DecimalMin(value = "1.00", message = "Rent amount must be at least ₹1")
+    @DecimalMax(value = "10000000.00", message = "Rent amount cannot exceed ₹1,00,00,000")
     private BigDecimal rentAmount;
 
     private PropertyType propertyType;
 
+    @Min(value = 1, message = "Bedrooms must be at least 1")
+    @Max(value = 50, message = "Bedrooms cannot exceed 50")
     private Integer bedrooms;
 
+    @Min(value = 1, message = "Bathrooms must be at least 1")
+    @Max(value = 50, message = "Bathrooms cannot exceed 50")
     private Integer bathrooms;
 
+    @Size(max = 150, message = "Locality cannot exceed 150 characters")
     private String locality;
 
+    @Size(max = 50, message = "Furnishing cannot exceed 50 characters")
     private String furnishing;
 
+    @Min(value = 10, message = "Area must be at least 10 sqft")
+    @Max(value = 100000, message = "Area cannot exceed 1,00,000 sqft")
     private Integer area;
 
+    @DecimalMin(value = "0.00", message = "Security deposit cannot be negative")
+    @DecimalMax(value = "50000000.00", message = "Security deposit cannot exceed ₹5,00,00,000")
     private BigDecimal securityDeposit;
 
     private String imageUrls;
 
+    @Size(max = 1000, message = "Amenities cannot exceed 1000 characters")
     private String amenities;
 
+    @Size(max = 100, message = "State cannot exceed 100 characters")
     private String state;
 
     private Double latitude;
 
     private Double longitude;
+
+    private Boolean available;
 
     // -------------------------------------------------------------------------
     // No-arg constructor
@@ -127,6 +144,10 @@ public class PropertyRequest {
         return longitude;
     }
 
+    public Boolean getAvailable() {
+        return available;
+    }
+
     // -------------------------------------------------------------------------
     // Setters
     // -------------------------------------------------------------------------
@@ -197,5 +218,9 @@ public class PropertyRequest {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public void setAvailable(Boolean available) {
+        this.available = available;
     }
 }

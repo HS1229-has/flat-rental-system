@@ -1,18 +1,17 @@
 package com.flatrental.auth.service;
 
-import com.flatrental.auth.dto.AuthResponse;
-import com.flatrental.auth.dto.LoginRequest;
-import com.flatrental.auth.dto.RegisterRequest;
-import com.flatrental.auth.dto.UserResponse;
+import com.flatrental.auth.dto.*;
 import com.flatrental.auth.entity.Role;
 import com.flatrental.auth.entity.User;
 import com.flatrental.auth.exception.DuplicateResourceException;
 import com.flatrental.auth.exception.InvalidCredentialsException;
 import com.flatrental.auth.repository.UserRepository;
 import com.flatrental.auth.security.JwtUtil;
+import com.flatrental.auth.security.LoginRateLimiter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
@@ -21,11 +20,19 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final LoginRateLimiter loginRateLimiter;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, LoginRateLimiter loginRateLimiter) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.loginRateLimiter = loginRateLimiter != null ? loginRateLimiter : new LoginRateLimiter();
+    }
+
+    // Overloaded constructor for backwards compatibility with test suites
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+        this(userRepository, passwordEncoder, jwtUtil, new LoginRateLimiter());
     }
 
     @Transactional
@@ -39,12 +46,17 @@ public class AuthService {
 
         Role role = parseRole(request.getRole());
 
+        String username = request.getUsername() != null ? request.getUsername().trim() : "";
+        String email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
+        String fullName = request.getFullName() != null ? request.getFullName().trim().replaceAll("\\s+", " ") : "";
+        String phone = normalizePhone(request.getPhoneNumber());
+
         User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
+                .username(username)
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
-                .phoneNumber(request.getPhoneNumber())
+                .fullName(fullName)
+                .phoneNumber(phone)
                 .role(role)
                 .build();
 
@@ -53,12 +65,23 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid username or password"));
+        String username = request.getUsername();
+        if (username != null) {
+            loginRateLimiter.checkAllowed(username);
+        }
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> {
+                    if (username != null) loginRateLimiter.recordFailedAttempt(username);
+                    return new InvalidCredentialsException("Invalid username or password");
+                });
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            if (username != null) loginRateLimiter.recordFailedAttempt(username);
             throw new InvalidCredentialsException("Invalid username or password");
         }
+
+        if (username != null) loginRateLimiter.reset(username);
 
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name(), user.getId());
 
@@ -71,13 +94,46 @@ public class AuthService {
                 .build();
     }
 
-    private Role parseRole(String rawRole) {
-        try {
-            String normalized = rawRole.toUpperCase().startsWith("ROLE_") ? rawRole.toUpperCase() : "ROLE_" + rawRole.toUpperCase();
-            return Role.valueOf(normalized);
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid role: " + rawRole + ". Allowed values: TENANT, OWNER, ADMIN");
+    public UsernameAvailabilityResponse checkUsernameAvailability(String rawUsername) {
+        if (rawUsername == null || rawUsername.isBlank()) {
+            return new UsernameAvailabilityResponse(false, "Username is required");
         }
+        String username = rawUsername.trim();
+        if (username.length() < 3 || username.length() > 30) {
+            return new UsernameAvailabilityResponse(false, "Username must be between 3 and 30 characters");
+        }
+        if (!username.matches("^[a-zA-Z0-9_.]+$")) {
+            return new UsernameAvailabilityResponse(false, "Username can only contain letters, numbers, underscores, and periods");
+        }
+        boolean exists = userRepository.existsByUsername(username) || userRepository.existsByUsernameIgnoreCase(username);
+        if (exists) {
+            return new UsernameAvailabilityResponse(false, "Username is already taken");
+        }
+        return new UsernameAvailabilityResponse(true, "Username is available");
+    }
+
+    private Role parseRole(String rawRole) {
+        String normalized = rawRole.toUpperCase().startsWith("ROLE_") ? rawRole.toUpperCase() : "ROLE_" + rawRole.toUpperCase();
+        try {
+            Role role = Role.valueOf(normalized);
+            if (role == Role.ROLE_ADMIN) {
+                throw new IllegalArgumentException("Invalid role: ADMIN. Public registration only allows: TENANT, OWNER");
+            }
+            return role;
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid role: " + rawRole + ". Allowed values: TENANT, OWNER");
+        }
+    }
+
+    private String normalizePhone(String raw) {
+        if (raw == null) return null;
+        String digits = raw.replaceAll("[^0-9]", "");
+        if (digits.startsWith("91") && digits.length() == 12) {
+            digits = digits.substring(2);
+        } else if (digits.startsWith("0") && digits.length() == 11) {
+            digits = digits.substring(1);
+        }
+        return digits;
     }
 
     private UserResponse toUserResponse(User user) {

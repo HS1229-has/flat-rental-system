@@ -3,6 +3,7 @@ package com.flatrental.payment.controller;
 import com.flatrental.payment.dto.PaymentRequest;
 import com.flatrental.payment.dto.PaymentResponse;
 import com.flatrental.payment.entity.PaymentStatus;
+import com.flatrental.payment.exception.PaymentProcessingException;
 import com.flatrental.payment.service.PaymentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,12 @@ public class PaymentController {
     }
 
     @GetMapping("/tenant/{tenantId}")
-    public ResponseEntity<List<PaymentResponse>> getPaymentsByTenant(@PathVariable Long tenantId) {
+    public ResponseEntity<List<PaymentResponse>> getPaymentsByTenant(
+            @PathVariable Long tenantId,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+        if (currentUserId != null && !tenantId.equals(currentUserId)) {
+            throw new PaymentProcessingException("Access denied: You can only view your own payment records.");
+        }
         return ResponseEntity.ok(paymentService.getPaymentsByTenant(tenantId));
     }
 

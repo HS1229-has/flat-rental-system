@@ -4,6 +4,7 @@ import com.flatrental.auth.dto.AuthResponse;
 import com.flatrental.auth.dto.LoginRequest;
 import com.flatrental.auth.dto.RegisterRequest;
 import com.flatrental.auth.dto.UserResponse;
+import com.flatrental.auth.dto.UsernameAvailabilityResponse;
 import com.flatrental.auth.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,11 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/check-username")
+    public ResponseEntity<UsernameAvailabilityResponse> checkUsername(@RequestParam(required = false) String username) {
+        return ResponseEntity.ok(authService.checkUsernameAvailability(username));
     }
 
     @GetMapping("/users")
